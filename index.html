@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PicShot — PM Time Tracker</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<!-- no external deps -->
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 :root {
@@ -114,7 +114,7 @@ tr.at-risk > td { background: var(--warning-bg); }
 <!-- Jira Modal -->
 <div class="jira-modal" id="jira-modal">
   <div class="jira-modal-box">
-    <h2><i class="ti ti-brand-jira"></i> Підтягнути з Jira</h2>
+    <h2>⬡ Підтягнути з Jira</h2>
     <p>Введи дані один раз — збережуться в браузері.</p>
     <div id="jira-error"></div>
     <div class="row" style="margin-bottom:10px;">
@@ -139,7 +139,7 @@ tr.at-risk > td { background: var(--warning-bg); }
     <div class="modal-actions">
       <button class="btn btn-outline" onclick="closeJiraModal()">Скасувати</button>
       <button class="btn btn-jira" id="j-fetch-btn" onclick="fetchFromJira()">
-        <i class="ti ti-download"></i> Завантажити задачі
+        ↓ Завантажити задачі
       </button>
     </div>
   </div>
@@ -155,15 +155,15 @@ tr.at-risk > td { background: var(--warning-bg); }
   </div>
 
   <div class="tab-bar">
-    <button class="tab active" onclick="switchTab('setup')"><i class="ti ti-settings"></i> Налаштування</button>
-    <button class="tab" onclick="switchTab('tasks')"><i class="ti ti-list"></i> Задачі</button>
-    <button class="tab" onclick="switchTab('report')"><i class="ti ti-chart-bar"></i> Звіт</button>
+    <button class="tab active" onclick="switchTab('setup')">⚙ Налаштування</button>
+    <button class="tab" onclick="switchTab('tasks')">☰ Задачі</button>
+    <button class="tab" onclick="switchTab('report')">📊 Звіт</button>
   </div>
 
   <!-- SETUP -->
   <div class="tab-content active" id="tab-setup">
     <div class="card">
-      <div class="card-title"><i class="ti ti-file-description"></i> Проект</div>
+      <div class="card-title">📄 Проект</div>
       <div class="row">
         <div class="field">
           <label>Назва проекту</label>
@@ -181,7 +181,7 @@ tr.at-risk > td { background: var(--warning-bg); }
     </div>
 
     <div class="card">
-      <div class="card-title"><i class="ti ti-palette"></i> Арт — estimate</div>
+      <div class="card-title">🎨 Арт — estimate</div>
       <div class="row">
         <div class="field">
           <label>SOW estimate, год</label>
@@ -200,7 +200,7 @@ tr.at-risk > td { background: var(--warning-bg); }
     </div>
 
     <div class="card">
-      <div class="card-title"><i class="ti ti-movie"></i> Анімація — estimate</div>
+      <div class="card-title">🎬 Анімація — estimate</div>
       <div class="row">
         <div class="field">
           <label>SOW estimate, год</label>
@@ -218,27 +218,27 @@ tr.at-risk > td { background: var(--warning-bg); }
     </div>
 
     <div class="card">
-      <div class="card-title"><i class="ti ti-users"></i> Аніматори</div>
+      <div class="card-title">👥 Аніматори</div>
       <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Задачі цих людей → анімація. Решта → арт.</p>
       <div id="animators-list"></div>
       <button class="btn btn-outline btn-sm" onclick="addAnimator()" style="margin-top:8px;">
-        <i class="ti ti-plus"></i> Додати аніматора
+        + Додати аніматора
       </button>
     </div>
 
     <div style="display:flex;gap:10px;align-items:center;">
-      <button class="btn" onclick="switchTab('tasks')">До задач <i class="ti ti-arrow-right"></i></button>
-      <span class="saved-note" id="saved-note"><i class="ti ti-check"></i> Збережено</span>
+      <button class="btn" onclick="switchTab('tasks')">До задач →</button>
+      <span class="saved-note" id="saved-note">✓ Збережено</span>
     </div>
   </div>
 
   <!-- TASKS -->
   <div class="tab-content" id="tab-tasks">
     <div class="card">
-      <div class="card-title"><i class="ti ti-list-check"></i> Задачі проекту</div>
+      <div class="card-title">✅ Задачі проекту</div>
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
         <button class="btn btn-jira" onclick="openJiraModal()">
-          <i class="ti ti-brand-jira"></i> Підтягнути з Jira
+          ⬡ Підтягнути з Jira
         </button>
         <span style="font-size:12px;color:var(--text2);">або додай вручну нижче</span>
       </div>
@@ -249,12 +249,12 @@ tr.at-risk > td { background: var(--warning-bg); }
       </div>
       <div id="tasks-list"></div>
       <button class="btn btn-outline btn-sm" onclick="addTask()" style="margin-top:8px;">
-        <i class="ti ti-plus"></i> Додати вручну
+        + Додати вручну
       </button>
     </div>
     <div style="display:flex;gap:10px;">
-      <button class="btn btn-outline" onclick="switchTab('setup')"><i class="ti ti-arrow-left"></i> Налаштування</button>
-      <button class="btn" onclick="switchTab('report')">Переглянути звіт <i class="ti ti-arrow-right"></i></button>
+      <button class="btn btn-outline" onclick="switchTab('setup')">← Налаштування</button>
+      <button class="btn" onclick="switchTab('report')">Переглянути звіт →</button>
     </div>
   </div>
 
@@ -264,7 +264,7 @@ tr.at-risk > td { background: var(--warning-bg); }
       <p style="color:var(--text2);text-align:center;padding:2rem;">Заповни налаштування і задачі щоб побачити звіт</p>
     </div>
     <div style="margin-top:1rem;">
-      <button class="btn btn-outline" onclick="switchTab('tasks')"><i class="ti ti-arrow-left"></i> Назад до задач</button>
+      <button class="btn btn-outline" onclick="switchTab('tasks')">← Назад до задач</button>
     </div>
   </div>
 </div>
@@ -359,7 +359,7 @@ async function fetchFromJira() {
 
   const btn = document.getElementById('j-fetch-btn');
   btn.disabled=true;
-  btn.innerHTML='<i class="ti ti-loader spinning"></i> Завантажую...';
+  btn.innerHTML='... Завантажую...';
 
   const auth = btoa(`${email}:${token}`);
   const url  = `https://${domain}/rest/api/3/search?jql=project="${key}" ORDER BY key ASC&fields=summary,status,assignee,timetracking&maxResults=100`;
@@ -411,7 +411,7 @@ async function fetchFromJira() {
 
     document.getElementById('jira-status').innerHTML=`
       <div style="background:var(--success-bg);color:var(--success);border-radius:var(--radius);padding:8px 12px;font-size:13px;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
-        <i class="ti ti-check"></i> Завантажено ${newTasks.length} задач з Jira
+        ✓ Завантажено ${newTasks.length} задач з Jira
       </div>`;
     setTimeout(()=>{ const el=document.getElementById('jira-status'); if(el) el.innerHTML=''; }, 4000);
 
@@ -419,7 +419,7 @@ async function fetchFromJira() {
     errEl.innerHTML=`<div class="error-msg">${e.message}</div>`;
   } finally {
     btn.disabled=false;
-    btn.innerHTML='<i class="ti ti-download"></i> Завантажити задачі';
+    btn.innerHTML='↓ Завантажити задачі';
   }
 }
 
@@ -430,7 +430,7 @@ function renderAnimators() {
       <input type="text" value="${a}" placeholder="Ім'я аніматора"
         style="height:32px;padding:0 8px;border:0.5px solid var(--border2);border-radius:var(--radius);font-size:13px;background:var(--bg2);color:var(--text);font-family:inherit;flex:1;"
         oninput="state.animators[${i}]=this.value;saveState();" />
-      <button class="del-btn" onclick="state.animators.splice(${i},1);saveState();renderAnimators();"><i class="ti ti-x"></i></button>
+      <button class="del-btn" onclick="state.animators.splice(${i},1);saveState();renderAnimators();">×</button>
     </div>`).join('');
 }
 function addAnimator() {
@@ -459,7 +459,7 @@ function renderTasks() {
       <input type="number" value="${t.original||''}"  placeholder="0" min="0" step="0.5" oninput="state.tasks[${i}].original=parseFloat(this.value)||0;saveState();" />
       <input type="number" value="${t.spent||''}"     placeholder="0" min="0" step="0.5" oninput="state.tasks[${i}].spent=parseFloat(this.value)||0;saveState();" />
       <input type="number" value="${t.remaining||''}" placeholder="0" min="0" step="0.5" oninput="state.tasks[${i}].remaining=parseFloat(this.value)||0;saveState();" />
-      <button class="del-btn" onclick="state.tasks.splice(${i},1);saveState();renderTasks();"><i class="ti ti-x"></i></button>
+      <button class="del-btn" onclick="state.tasks.splice(${i},1);saveState();renderTasks();">×</button>
     </div>`).join('');
 }
 function addTask() {
@@ -540,7 +540,7 @@ function recalc() {
   document.getElementById('report-content').innerHTML=`
     <div class="summary-block">
       <div class="summary-card">
-        <h3><i class="ti ti-palette" style="color:var(--success)"></i> Арт</h3>
+        <h3>🎨 Арт</h3>
         <div class="summary-row"><span>SOW estimate</span><span>${artSOW} год</span></div>
         <div class="summary-row"><span>Real estimate (команда)</span><span>${parseFloat(state.artReal)||0} год</span></div>
         <div class="summary-row"><span>Подушка стартова</span><span>${artBuf} год</span></div>
@@ -551,7 +551,7 @@ function recalc() {
         <div class="summary-row"><span>Залишилось всього</span><span><strong>${(aR+artBufLeft).toFixed(1)} год</strong></span></div>
       </div>
       <div class="summary-card">
-        <h3><i class="ti ti-movie" style="color:var(--info)"></i> Анімація</h3>
+        <h3>🎬 Анімація</h3>
         <div class="summary-row"><span>SOW estimate</span><span>${animSOW} год</span></div>
         <div class="summary-row"><span>Real estimate (команда)</span><span>${parseFloat(state.animReal)||0} год</span></div>
         <div class="summary-row"><span>Подушка стартова</span><span>${animBuf} год</span></div>
@@ -564,7 +564,7 @@ function recalc() {
     </div>
     <div style="margin-bottom:1.25rem;">
       <div class="card-title" style="margin-bottom:10px;">
-        <i class="ti ti-alert-triangle"></i> Проблемні задачі (${problems.length})
+        ⚠ Проблемні задачі (${problems.length})
         <span style="font-size:11px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">— підсвічені автоматично, PM вирішує чи є проблема і додає коментар</span>
       </div>
       ${problems.length?`
@@ -580,7 +580,7 @@ function recalc() {
       </table></div>`:`<div class="problems-empty">🎉 Проблемних задач немає</div>`}
     </div>
     <div>
-      <div class="card-title" style="margin-bottom:10px;"><i class="ti ti-list-check"></i> Всі задачі (${state.tasks.length})</div>
+      <div class="card-title" style="margin-bottom:10px;">✅ Всі задачі (${state.tasks.length})</div>
       ${state.tasks.length?`
       <div class="table-wrap"><table>
         <thead><tr>
@@ -599,10 +599,10 @@ function renderAll() {
   document.getElementById('client').value=state.client||'';
   document.getElementById('artSOW').value=state.artSOW||'';
   document.getElementById('artReal').value=state.artReal||'';
-  document.getElementById('artBuffer').value=state.artBuffer||'';
+  document.getElementById('artBuffer').value=state.artSOW&&state.artReal ? Math.max(0,+(state.artSOW-state.artReal).toFixed(1)) : (state.artBuffer||'');
   document.getElementById('animSOW').value=state.animSOW||'';
   document.getElementById('animReal').value=state.animReal||'';
-  document.getElementById('animBuffer').value=state.animBuffer||'';
+  document.getElementById('animBuffer').value=state.animSOW&&state.animReal ? Math.max(0,+(state.animSOW-state.animReal).toFixed(1)) : (state.animBuffer||'');
   renderAnimators(); renderTasks(); updateBadge();
 }
 loadState();
