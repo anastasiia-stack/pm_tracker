@@ -381,7 +381,7 @@ function fetchJira(){
           key:iss.key,
           summary:iss.fields.summary||'',
           assignee:(iss.fields.assignee&&iss.fields.assignee.displayName)||'',
-          status:(iss.fields.status&&iss.fields.status.name)||'TO DO',
+          status:(iss.fields.status&&(iss.fields.status.name||iss.fields.status.statusCategory&&iss.fields.status.statusCategory.name))||'TO DO',
           original:Math.round((tt.originalEstimateSeconds||0)/360)/10,
           spent:Math.round((tt.timeSpentSeconds||0)/360)/10,
           remaining:Math.round((tt.remainingEstimateSeconds||0)/360)/10,
