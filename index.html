@@ -358,7 +358,8 @@ function fetchJira(){
   var btn=document.getElementById('jbtn');
   btn.disabled=true; btn.innerHTML='<span class="spin">↺</span> Завантажую...';
   var auth=btoa(email+':'+token);
-  var url='https://'+domain+'/rest/api/3/search?jql=project="'+key+'" ORDER BY key ASC&fields=summary,status,assignee,timetracking&maxResults=100';
+  var jiraUrl='https://'+domain+'/rest/api/3/search?jql=project="'+key+'" ORDER BY key ASC&fields=summary,status,assignee,timetracking&maxResults=100';
+  var url='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(jiraUrl);
   fetch(url,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
     .then(function(r){
       if(r.status===401) throw new Error('Невірний email або токен.');
