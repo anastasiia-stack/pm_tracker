@@ -39,11 +39,14 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; b
 .field label { font-size: 12px; color: var(--text2); }
 .field input { height: 36px; padding: 0 10px; border: 0.5px solid var(--border2); border-radius: var(--radius); font-size: 14px; background: var(--bg2); color: var(--text); width: 100%; font-family: inherit; }
 .field input:focus { outline: none; border-color: var(--info); box-shadow: 0 0 0 2px rgba(24,95,165,0.12); }
-.btn { height: 36px; padding: 0 16px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--text); color: var(--bg); font-size: 13px; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn { height: 36px; padding: 0 16px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--text); color: var(--bg); font-size: 13px; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; transition: opacity 0.15s; }
 .btn:hover { opacity: 0.85; } .btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
 .btn-outline { background: transparent; color: var(--text); }
 .btn-outline:hover { background: var(--bg2); }
 .btn-sm { height: 30px; padding: 0 12px; font-size: 12px; }
+.btn-jira { background: var(--info-bg); color: var(--info); border-color: var(--info); }
+.btn-jira:hover { opacity: 0.85; }
 .hint { font-size: 12px; color: var(--text3); margin-top: 6px; }
 .summary-block { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
 @media (max-width: 600px) { .summary-block { grid-template-columns: 1fr; } }
@@ -90,16 +93,58 @@ tr.at-risk > td { background: var(--warning-bg); }
 .tab-content { display: none; }
 .tab-content.active { display: block; }
 .saved-note { font-size: 11px; color: var(--success); display: none; margin-left: 8px; align-items: center; gap: 4px; }
-
-/* Comment cell in report */
 .comment-cell { display: flex; flex-direction: column; gap: 4px; min-width: 180px; }
 .comment-textarea { width: 100%; min-height: 54px; padding: 6px 8px; border: 0.5px solid var(--border2); border-radius: var(--radius); font-size: 12px; background: var(--bg); color: var(--text); font-family: inherit; resize: vertical; line-height: 1.4; }
 .comment-textarea:focus { outline: none; border-color: var(--info); }
 .comment-textarea::placeholder { color: var(--text3); }
 .problems-empty { text-align: center; padding: 1.5rem; color: var(--text2); font-size: 13px; }
+.error-msg { background: var(--danger-bg); color: var(--danger); border-radius: var(--radius); padding: 10px 14px; font-size: 13px; margin-bottom: 1rem; }
+.jira-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
+.jira-modal.open { display: flex; }
+.jira-modal-box { background: var(--bg); border-radius: var(--radius-lg); padding: 1.5rem; width: 100%; max-width: 480px; margin: 1rem; }
+.jira-modal-box h2 { font-size: 16px; font-weight: 500; margin-bottom: 4px; }
+.jira-modal-box p { font-size: 13px; color: var(--text2); margin-bottom: 1.25rem; }
+.modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 1.25rem; }
+.spinning { animation: spin 0.8s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 </style>
 </head>
 <body>
+
+<!-- Jira Modal -->
+<div class="jira-modal" id="jira-modal">
+  <div class="jira-modal-box">
+    <h2><i class="ti ti-brand-jira"></i> Підтягнути з Jira</h2>
+    <p>Введи дані один раз — збережуться в браузері.</p>
+    <div id="jira-error"></div>
+    <div class="row" style="margin-bottom:10px;">
+      <div class="field">
+        <label>Jira domain</label>
+        <input type="text" id="j-domain" placeholder="yourcompany.atlassian.net" />
+      </div>
+    </div>
+    <div class="row" style="margin-bottom:10px;">
+      <div class="field">
+        <label>Email</label>
+        <input type="text" id="j-email" placeholder="you@company.com" />
+      </div>
+    </div>
+    <div class="row">
+      <div class="field">
+        <label>API token</label>
+        <input type="password" id="j-token" placeholder="••••••••••••••••" />
+      </div>
+    </div>
+    <p class="hint" style="margin-top:8px;">Токен: Jira → Profile → Security → API tokens</p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeJiraModal()">Скасувати</button>
+      <button class="btn btn-jira" id="j-fetch-btn" onclick="fetchFromJira()">
+        <i class="ti ti-download"></i> Завантажити задачі
+      </button>
+    </div>
+  </div>
+</div>
+
 <div class="page">
   <div class="header">
     <div>
@@ -140,14 +185,18 @@ tr.at-risk > td { background: var(--warning-bg); }
       <div class="row">
         <div class="field">
           <label>SOW estimate, год</label>
-          <input type="number" id="artSOW" placeholder="257" min="0" oninput="autoSave()" />
+          <input type="number" id="artSOW" placeholder="257" min="0" oninput="autoSave(); updateBuffer('art')" />
         </div>
         <div class="field">
-          <label>Подушка стартова, год</label>
-          <input type="number" id="artBuffer" placeholder="17.5" min="0" step="0.5" oninput="autoSave()" />
+          <label>Real estimate (для команди), год</label>
+          <input type="number" id="artReal" placeholder="239.5" min="0" step="0.5" oninput="autoSave(); updateBuffer('art')" />
+        </div>
+        <div class="field" style="max-width:160px;">
+          <label>Подушка (авто), год</label>
+          <input type="number" id="artBuffer" placeholder="0" min="0" step="0.5" readonly style="opacity:0.6;cursor:default;" />
         </div>
       </div>
-      <p class="hint">SOW — зафіксовано в контракті. Подушка — закладена понад real estimate.</p>
+      <p class="hint">Подушка = SOW − Real estimate, рахується автоматично.</p>
     </div>
 
     <div class="card">
@@ -155,11 +204,15 @@ tr.at-risk > td { background: var(--warning-bg); }
       <div class="row">
         <div class="field">
           <label>SOW estimate, год</label>
-          <input type="number" id="animSOW" placeholder="115" min="0" oninput="autoSave()" />
+          <input type="number" id="animSOW" placeholder="115" min="0" oninput="autoSave(); updateBuffer('anim')" />
         </div>
         <div class="field">
-          <label>Подушка стартова, год</label>
-          <input type="number" id="animBuffer" placeholder="0" min="0" step="0.5" oninput="autoSave()" />
+          <label>Real estimate (для команди), год</label>
+          <input type="number" id="animReal" placeholder="115" min="0" step="0.5" oninput="autoSave(); updateBuffer('anim')" />
+        </div>
+        <div class="field" style="max-width:160px;">
+          <label>Подушка (авто), год</label>
+          <input type="number" id="animBuffer" placeholder="0" min="0" step="0.5" readonly style="opacity:0.6;cursor:default;" />
         </div>
       </div>
     </div>
@@ -183,14 +236,20 @@ tr.at-risk > td { background: var(--warning-bg); }
   <div class="tab-content" id="tab-tasks">
     <div class="card">
       <div class="card-title"><i class="ti ti-list-check"></i> Задачі проекту</div>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Тип визначається автоматично по виконавцю.</p>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="btn btn-jira" onclick="openJiraModal()">
+          <i class="ti ti-brand-jira"></i> Підтягнути з Jira
+        </button>
+        <span style="font-size:12px;color:var(--text2);">або додай вручну нижче</span>
+      </div>
+      <div id="jira-status"></div>
       <div class="task-header">
         <span>Key</span><span>Назва</span><span>Виконавець</span>
         <span>Статус</span><span>Original</span><span>Spent</span><span>Remaining</span><span></span>
       </div>
       <div id="tasks-list"></div>
       <button class="btn btn-outline btn-sm" onclick="addTask()" style="margin-top:8px;">
-        <i class="ti ti-plus"></i> Додати задачу
+        <i class="ti ti-plus"></i> Додати вручну
       </button>
     </div>
     <div style="display:flex;gap:10px;">
@@ -213,39 +272,58 @@ tr.at-risk > td { background: var(--warning-bg); }
 <script>
 let state = {
   projectName:'', projectKey:'', client:'',
-  artSOW:0, artBuffer:0, animSOW:0, animBuffer:0,
+  artSOW:0, artReal:0, artBuffer:0, animSOW:0, animReal:0, animBuffer:0,
   animators:[], tasks:[], comments:{}
 };
+let jiraCreds = { domain:'', email:'', token:'' };
 
 const STATUSES = ['TO DO','IN PROGRESS','ON DELIVERY','ON HOLD','EDITS','EXPORT','DONE'];
 
 function loadState() {
-  try { const s = localStorage.getItem('picshot-tracker-v2'); if(s) state = JSON.parse(s); } catch(e){}
+  try { const s = localStorage.getItem('picshot-tracker-v3'); if(s) state = JSON.parse(s); } catch(e){}
+  try { const j = localStorage.getItem('picshot-jira-creds'); if(j) jiraCreds = JSON.parse(j); } catch(e){}
   renderAll();
 }
 function saveState() {
-  try { localStorage.setItem('picshot-tracker-v2', JSON.stringify(state)); } catch(e){}
+  try { localStorage.setItem('picshot-tracker-v3', JSON.stringify(state)); } catch(e){}
+}
+function saveJiraCreds() {
+  try { localStorage.setItem('picshot-jira-creds', JSON.stringify(jiraCreds)); } catch(e){}
 }
 function autoSave() {
   state.projectName = document.getElementById('projectName').value;
   state.projectKey  = document.getElementById('projectKey').value;
   state.client      = document.getElementById('client').value;
-  state.artSOW      = parseFloat(document.getElementById('artSOW').value)    || 0;
-  state.artBuffer   = parseFloat(document.getElementById('artBuffer').value)  || 0;
-  state.animSOW     = parseFloat(document.getElementById('animSOW').value)    || 0;
-  state.animBuffer  = parseFloat(document.getElementById('animBuffer').value) || 0;
+  state.artSOW      = parseFloat(document.getElementById('artSOW').value)||0;
+  state.artReal     = parseFloat(document.getElementById('artReal').value)||0;
+  state.artBuffer   = Math.max(0, +(state.artSOW - state.artReal).toFixed(1));
+  state.animSOW     = parseFloat(document.getElementById('animSOW').value)||0;
+  state.animReal    = parseFloat(document.getElementById('animReal').value)||0;
+  state.animBuffer  = Math.max(0, +(state.animSOW - state.animReal).toFixed(1));
   saveState(); updateBadge(); showSaved();
 }
 function showSaved() {
   const el = document.getElementById('saved-note');
-  el.style.display = 'inline-flex';
+  el.style.display='inline-flex';
   clearTimeout(window._st);
   window._st = setTimeout(()=>{ el.style.display='none'; }, 1800);
 }
-function updateBadge() {
+function updateBuffer(type) {
+  if(type==='art') {
+    const sow = parseFloat(document.getElementById('artSOW').value)||0;
+    const real= parseFloat(document.getElementById('artReal').value)||0;
+    const buf = Math.max(0, +(sow-real).toFixed(1));
+    document.getElementById('artBuffer').value = buf||'';
+  } else {
+    const sow = parseFloat(document.getElementById('animSOW').value)||0;
+    const real= parseFloat(document.getElementById('animReal').value)||0;
+    const buf = Math.max(0, +(sow-real).toFixed(1));
+    document.getElementById('animBuffer').value = buf||'';
+  }
+}
   const b = document.getElementById('project-badge');
   const k = state.projectKey || state.projectName;
-  if(k){ b.textContent = k; b.style.display='inline-flex'; } else b.style.display='none';
+  if(k){ b.textContent=k; b.style.display='inline-flex'; } else b.style.display='none';
 }
 function switchTab(name) {
   document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
@@ -254,6 +332,95 @@ function switchTab(name) {
   const idx = ['setup','tasks','report'].indexOf(name);
   document.querySelectorAll('.tab')[idx].classList.add('active');
   if(name==='report') recalc();
+}
+
+// JIRA MODAL
+function openJiraModal() {
+  document.getElementById('j-domain').value = jiraCreds.domain||'';
+  document.getElementById('j-email').value  = jiraCreds.email||'';
+  document.getElementById('j-token').value  = jiraCreds.token||'';
+  document.getElementById('jira-error').innerHTML = '';
+  document.getElementById('jira-modal').classList.add('open');
+}
+function closeJiraModal() {
+  document.getElementById('jira-modal').classList.remove('open');
+}
+
+async function fetchFromJira() {
+  const domain = document.getElementById('j-domain').value.trim().replace(/^https?:\/\//,'').replace(/\/$/,'');
+  const email  = document.getElementById('j-email').value.trim();
+  const token  = document.getElementById('j-token').value.trim();
+  const key    = state.projectKey.trim().toUpperCase();
+  const errEl  = document.getElementById('jira-error');
+  errEl.innerHTML='';
+
+  if(!domain||!email||!token) { errEl.innerHTML='<div class="error-msg">Заповни всі поля.</div>'; return; }
+  if(!key) { errEl.innerHTML='<div class="error-msg">Спочатку введи Jira key проекту на вкладці «Налаштування».</div>'; return; }
+
+  const btn = document.getElementById('j-fetch-btn');
+  btn.disabled=true;
+  btn.innerHTML='<i class="ti ti-loader spinning"></i> Завантажую...';
+
+  const auth = btoa(`${email}:${token}`);
+  const url  = `https://${domain}/rest/api/3/search?jql=project="${key}" ORDER BY key ASC&fields=summary,status,assignee,timetracking&maxResults=100`;
+
+  try {
+    const resp = await fetch(url, { headers:{ 'Authorization':`Basic ${auth}`, 'Accept':'application/json' } });
+    if(resp.status===401) throw new Error('Невірний email або токен.');
+    if(resp.status===403) throw new Error('Немає доступу до проекту.');
+    if(resp.status===400) throw new Error(`Невірний project key "${key}".`);
+    if(!resp.ok) throw new Error(`Jira відповіла помилкою ${resp.status}.`);
+
+    const data = await resp.json();
+    const issues = data.issues||[];
+    if(!issues.length) throw new Error(`Задач не знайдено в проекті ${key}.`);
+
+    // Save creds
+    jiraCreds = {domain, email, token};
+    saveJiraCreds();
+
+    // Merge: update existing by key, add new ones, keep manual ones
+    const existingByKey = {};
+    state.tasks.forEach(t=>{ if(t.key) existingByKey[t.key]=t; });
+
+    const newTasks = issues.map(issue=>{
+      const orig = +(( issue.fields.timetracking?.originalEstimateSeconds||0)/3600).toFixed(1);
+      const spent= +(( issue.fields.timetracking?.timeSpentSeconds||0)/3600).toFixed(1);
+      const rem  = +(( issue.fields.timetracking?.remainingEstimateSeconds||0)/3600).toFixed(1);
+      const existing = existingByKey[issue.key];
+      return {
+        key:      issue.key,
+        summary:  issue.fields.summary||'',
+        assignee: issue.fields.assignee?.displayName||'',
+        status:   issue.fields.status?.name||'TO DO',
+        original: orig,
+        spent:    spent,
+        remaining:rem,
+        // keep manual comment if exists
+        _fromJira: true
+      };
+    });
+
+    // Keep manual tasks (no key or key not in jira results)
+    const jiraKeys = new Set(newTasks.map(t=>t.key));
+    const manualTasks = state.tasks.filter(t=>!t._fromJira&&!jiraKeys.has(t.key));
+    state.tasks = [...newTasks, ...manualTasks];
+    saveState();
+    renderTasks();
+    closeJiraModal();
+
+    document.getElementById('jira-status').innerHTML=`
+      <div style="background:var(--success-bg);color:var(--success);border-radius:var(--radius);padding:8px 12px;font-size:13px;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+        <i class="ti ti-check"></i> Завантажено ${newTasks.length} задач з Jira
+      </div>`;
+    setTimeout(()=>{ const el=document.getElementById('jira-status'); if(el) el.innerHTML=''; }, 4000);
+
+  } catch(e) {
+    errEl.innerHTML=`<div class="error-msg">${e.message}</div>`;
+  } finally {
+    btn.disabled=false;
+    btn.innerHTML='<i class="ti ti-download"></i> Завантажити задачі';
+  }
 }
 
 // ANIMATORS
@@ -302,17 +469,16 @@ function addTask() {
 }
 
 // REPORT
-function getFlag(orig, rem) {
-  if(!orig) return {label:'—', cls:'badge-neutral'};
-  if(rem > orig) return {label:'Overestimate', cls:'badge-danger'};
-  if(rem > orig*0.8 && rem>0) return {label:'At risk', cls:'badge-warning'};
-  if(rem===0) return {label:'Виконано', cls:'badge-success'};
-  return {label:'OK', cls:'badge-success'};
+function getFlag(orig,rem) {
+  if(!orig) return {label:'—',cls:'badge-neutral'};
+  if(rem>orig) return {label:'Overestimate',cls:'badge-danger'};
+  if(rem>orig*0.8&&rem>0) return {label:'At risk',cls:'badge-warning'};
+  if(rem===0) return {label:'Виконано',cls:'badge-success'};
+  return {label:'OK',cls:'badge-success'};
 }
 function isProblem(t) {
-  const orig = parseFloat(t.original)||0;
-  const rem  = parseFloat(t.remaining)||0;
-  return orig && (rem > orig || (rem > orig*0.8 && rem>0));
+  const orig=parseFloat(t.original)||0, rem=parseFloat(t.remaining)||0;
+  return orig&&(rem>orig||(rem>orig*0.8&&rem>0));
 }
 function statusBadge(s) {
   const sl=(s||'').toLowerCase();
@@ -321,33 +487,24 @@ function statusBadge(s) {
   if(sl.includes('hold')||sl.includes('waiting')) return `<span class="badge badge-warning">${s}</span>`;
   return `<span class="badge badge-neutral">${s}</span>`;
 }
-function progressCell(spent, orig) {
-  const val = `<strong>${spent||0}</strong>`;
+function progressCell(spent,orig) {
+  const val=`<strong>${spent||0}</strong>`;
   if(!orig) return val;
-  const pct = Math.min(Math.round((spent/orig)*100),100);
-  const color = pct>=100?'var(--danger)':pct>=80?'var(--warning)':'var(--success)';
+  const pct=Math.min(Math.round((spent/orig)*100),100);
+  const color=pct>=100?'var(--danger)':pct>=80?'var(--warning)':'var(--success)';
   return `${val}<div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color};"></div></div><span class="progress-label">${pct}%</span></div>`;
 }
-
 function buildRow(t, showComment) {
-  const orig = parseFloat(t.original)||0;
-  const spent= parseFloat(t.spent)||0;
-  const rem  = parseFloat(t.remaining)||0;
-  const flag = getFlag(orig,rem);
-  const rowCls = orig&&rem>orig?'overestimate':orig&&rem>orig*0.8&&rem>0?'at-risk':'';
-  const typeBadge = isAnimator(t.assignee)
-    ? '<span class="badge badge-anim">анімація</span>'
-    : '<span class="badge badge-art">арт</span>';
-  const commentId = `comment-${t.key||t.summary}`;
-  const savedComment = state.comments[commentId]||'';
-  const commentCell = showComment ? `
-    <td>
-      <div class="comment-cell">
-        <textarea class="comment-textarea" placeholder="Коментар ПМа…" oninput="state.comments['${commentId}']=this.value;saveState();">${savedComment}</textarea>
-        ${savedComment ? `<span style="font-size:11px;color:var(--success);"><i class="ti ti-check"></i> Збережено</span>` : ''}
-      </div>
-    </td>` : '<td></td>';
-
+  const orig=parseFloat(t.original)||0, spent=parseFloat(t.spent)||0, rem=parseFloat(t.remaining)||0;
+  const flag=getFlag(orig,rem);
+  const rowCls=orig&&rem>orig?'overestimate':orig&&rem>orig*0.8&&rem>0?'at-risk':'';
+  const typeBadge=isAnimator(t.assignee)?'<span class="badge badge-anim">анімація</span>':'<span class="badge badge-art">арт</span>';
+  const commentId=`comment-${t.key||t.summary}`;
+  const savedComment=state.comments[commentId]||'';
+  const commentCell=showComment?`
+    <td><div class="comment-cell">
+      <textarea class="comment-textarea" placeholder="Коментар ПМа…" oninput="state.comments['${commentId}']=this.value;saveState();">${savedComment}</textarea>
+    </div></td>`:'<td></td>';
   return `<tr class="${rowCls}">
     <td style="font-size:12px;color:var(--text2);white-space:nowrap;">${t.key||'—'}</td>
     <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${t.summary}">${t.summary||'—'}</td>
@@ -361,41 +518,34 @@ function buildRow(t, showComment) {
     ${commentCell}
   </tr>`;
 }
-
 function recalc() {
-  const artSOW = parseFloat(state.artSOW)||0;
-  const artBuf = parseFloat(state.artBuffer)||0;
-  const animSOW= parseFloat(state.animSOW)||0;
-  const animBuf= parseFloat(state.animBuffer)||0;
-
-  let aS=0,aR=0,aO=0, nS=0,nR=0,nO=0;
+  const artSOW=parseFloat(state.artSOW)||0, artBuf=parseFloat(state.artBuffer)||0;
+  const animSOW=parseFloat(state.animSOW)||0, animBuf=parseFloat(state.animBuffer)||0;
+  let aS=0,aR=0,aO=0,nS=0,nR=0,nO=0;
   const problems=[];
-
   state.tasks.forEach(t=>{
-    const o=parseFloat(t.original)||0, s=parseFloat(t.spent)||0, r=parseFloat(t.remaining)||0;
-    if(isAnimator(t.assignee)){ nS+=s;nR+=r;nO+=o; } else { aS+=s;aR+=r;aO+=o; }
+    const o=parseFloat(t.original)||0,s=parseFloat(t.spent)||0,r=parseFloat(t.remaining)||0;
+    if(isAnimator(t.assignee)){nS+=s;nR+=r;nO+=o;}else{aS+=s;aR+=r;aO+=o;}
     if(isProblem(t)) problems.push(t);
   });
+  const artBufUsed=Math.max(0,+((artBuf-(artSOW-aS-aR)).toFixed(1)));
+  const artBufLeft=Math.max(0,+(artBuf-artBufUsed).toFixed(1));
+  const animBufUsed=Math.max(0,+((animBuf-(animSOW-nS-nR)).toFixed(1)));
+  const animBufLeft=Math.max(0,+(animBuf-animBufUsed).toFixed(1));
+  const artPct=artSOW?Math.round(aS/artSOW*100):0;
+  const animPct=animSOW?Math.round(nS/animSOW*100):0;
+  const cc=p=>p>=100?'danger':p>=80?'warn':'ok';
+  const bc=(l,s)=>!s?'':(l/s<=0?'danger':l/s<=0.3?'warn':'ok');
 
-  const artBufUsed  = Math.max(0,+((artBuf-(artSOW-aS-aR)).toFixed(1)));
-  const artBufLeft  = Math.max(0,+(artBuf-artBufUsed).toFixed(1));
-  const animBufUsed = Math.max(0,+((animBuf-(animSOW-nS-nR)).toFixed(1)));
-  const animBufLeft = Math.max(0,+(animBuf-animBufUsed).toFixed(1));
-
-  const artPct  = artSOW  ? Math.round(aS/artSOW*100)  : 0;
-  const animPct = animSOW ? Math.round(nS/animSOW*100) : 0;
-
-  const cc = (p) => p>=100?'danger':p>=80?'warn':'ok';
-  const bc = (l,s) => !s?'':(l/s<=0?'danger':l/s<=0.3?'warn':'ok');
-
-  document.getElementById('report-content').innerHTML = `
+  document.getElementById('report-content').innerHTML=`
     <div class="summary-block">
       <div class="summary-card">
         <h3><i class="ti ti-palette" style="color:var(--success)"></i> Арт</h3>
         <div class="summary-row"><span>SOW estimate</span><span>${artSOW} год</span></div>
+        <div class="summary-row"><span>Real estimate (команда)</span><span>${parseFloat(state.artReal)||0} год</span></div>
+        <div class="summary-row"><span>Подушка стартова</span><span>${artBuf} год</span></div>
         <div class="summary-row"><span>Затрековано</span><span class="${cc(artPct)}">${aS.toFixed(1)} год (${artPct}%)</span></div>
         <div class="summary-row"><span>Залишилось в задачах</span><span>${aR.toFixed(1)} год</span></div>
-        <div class="summary-row"><span>Подушка стартова</span><span>${artBuf} год</span></div>
         <div class="summary-row"><span>Подушка використана</span><span class="${artBufUsed>artBuf?'danger':''}">${artBufUsed.toFixed(1)} год</span></div>
         <div class="summary-row"><span>Подушка залишилась</span><span class="${bc(artBufLeft,artBuf)}">${artBufLeft.toFixed(1)} год</span></div>
         <div class="summary-row"><span>Залишилось всього</span><span><strong>${(aR+artBufLeft).toFixed(1)} год</strong></span></div>
@@ -403,63 +553,58 @@ function recalc() {
       <div class="summary-card">
         <h3><i class="ti ti-movie" style="color:var(--info)"></i> Анімація</h3>
         <div class="summary-row"><span>SOW estimate</span><span>${animSOW} год</span></div>
+        <div class="summary-row"><span>Real estimate (команда)</span><span>${parseFloat(state.animReal)||0} год</span></div>
+        <div class="summary-row"><span>Подушка стартова</span><span>${animBuf} год</span></div>
         <div class="summary-row"><span>Затрековано</span><span class="${cc(animPct)}">${nS.toFixed(1)} год (${animPct}%)</span></div>
         <div class="summary-row"><span>Залишилось в задачах</span><span>${nR.toFixed(1)} год</span></div>
-        <div class="summary-row"><span>Подушка стартова</span><span>${animBuf} год</span></div>
         <div class="summary-row"><span>Подушка використана</span><span class="${animBufUsed>animBuf?'danger':''}">${animBufUsed.toFixed(1)} год</span></div>
         <div class="summary-row"><span>Подушка залишилась</span><span class="${bc(animBufLeft,animBuf)}">${animBufLeft.toFixed(1)} год</span></div>
         <div class="summary-row"><span>Залишилось всього</span><span><strong>${(nR+animBufLeft).toFixed(1)} год</strong></span></div>
       </div>
     </div>
-
     <div style="margin-bottom:1.25rem;">
       <div class="card-title" style="margin-bottom:10px;">
         <i class="ti ti-alert-triangle"></i> Проблемні задачі (${problems.length})
         <span style="font-size:11px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">— підсвічені автоматично, PM вирішує чи є проблема і додає коментар</span>
       </div>
-      ${problems.length ? `
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th style="width:70px">Key</th><th>Задача</th><th style="width:120px">Виконавець</th>
-            <th style="width:80px">Тип</th><th style="width:100px">Статус</th>
-            <th style="width:75px">Orig h</th><th style="width:95px">Spent h</th>
-            <th style="width:75px">Rem h</th><th style="width:105px">Прапор</th>
-            <th style="min-width:200px">Коментар ПМа</th>
-          </tr></thead>
-          <tbody>${problems.map(t=>buildRow(t,true)).join('')}</tbody>
-        </table>
-      </div>` : `<div class="problems-empty">🎉 Проблемних задач немає</div>`}
+      ${problems.length?`
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th style="width:70px">Key</th><th>Задача</th><th style="width:120px">Виконавець</th>
+          <th style="width:80px">Тип</th><th style="width:100px">Статус</th>
+          <th style="width:75px">Orig h</th><th style="width:95px">Spent h</th>
+          <th style="width:75px">Rem h</th><th style="width:105px">Прапор</th>
+          <th style="min-width:200px">Коментар ПМа</th>
+        </tr></thead>
+        <tbody>${problems.map(t=>buildRow(t,true)).join('')}</tbody>
+      </table></div>`:`<div class="problems-empty">🎉 Проблемних задач немає</div>`}
     </div>
-
     <div>
       <div class="card-title" style="margin-bottom:10px;"><i class="ti ti-list-check"></i> Всі задачі (${state.tasks.length})</div>
-      ${state.tasks.length ? `
-      <div class="table-wrap">
-        <table>
-          <thead><tr>
-            <th style="width:70px">Key</th><th>Задача</th><th style="width:120px">Виконавець</th>
-            <th style="width:80px">Тип</th><th style="width:100px">Статус</th>
-            <th style="width:75px">Orig h</th><th style="width:95px">Spent h</th>
-            <th style="width:75px">Rem h</th><th style="width:105px">Стан</th><th></th>
-          </tr></thead>
-          <tbody>${state.tasks.map(t=>buildRow(t,false)).join('')}</tbody>
-        </table>
-      </div>` : `<div class="problems-empty">Задач немає — перейди на вкладку «Задачі»</div>`}
+      ${state.tasks.length?`
+      <div class="table-wrap"><table>
+        <thead><tr>
+          <th style="width:70px">Key</th><th>Задача</th><th style="width:120px">Виконавець</th>
+          <th style="width:80px">Тип</th><th style="width:100px">Статус</th>
+          <th style="width:75px">Orig h</th><th style="width:95px">Spent h</th>
+          <th style="width:75px">Rem h</th><th style="width:105px">Стан</th><th></th>
+        </tr></thead>
+        <tbody>${state.tasks.map(t=>buildRow(t,false)).join('')}</tbody>
+      </table></div>`:`<div class="problems-empty">Задач немає</div>`}
     </div>`;
 }
-
 function renderAll() {
-  document.getElementById('projectName').value = state.projectName||'';
-  document.getElementById('projectKey').value  = state.projectKey||'';
-  document.getElementById('client').value      = state.client||'';
-  document.getElementById('artSOW').value      = state.artSOW||'';
-  document.getElementById('artBuffer').value   = state.artBuffer||'';
-  document.getElementById('animSOW').value     = state.animSOW||'';
-  document.getElementById('animBuffer').value  = state.animBuffer||'';
+  document.getElementById('projectName').value=state.projectName||'';
+  document.getElementById('projectKey').value=state.projectKey||'';
+  document.getElementById('client').value=state.client||'';
+  document.getElementById('artSOW').value=state.artSOW||'';
+  document.getElementById('artReal').value=state.artReal||'';
+  document.getElementById('artBuffer').value=state.artBuffer||'';
+  document.getElementById('animSOW').value=state.animSOW||'';
+  document.getElementById('animReal').value=state.animReal||'';
+  document.getElementById('animBuffer').value=state.animBuffer||'';
   renderAnimators(); renderTasks(); updateBadge();
 }
-
 loadState();
 </script>
 </body>
