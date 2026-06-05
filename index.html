@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PicShot — PM Time Tracker</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #ffffff; --bg2: #f5f5f3; --bg3: #eeede9;
+  --text: #1a1a19; --text2: #6b6b68; --text3: #a0a09c;
+  --border: rgba(0,0,0,0.12); --border2: rgba(0,0,0,0.22);
+  --success: #1d9e75; --warning: #ba7517; --danger: #a32d2d;
+  --success-bg: #eaf3de; --warning-bg: #faeeda; --danger-bg: #fcebeb;
+  --info: #185fa5; --info-bg: #e6f1fb;
+  --radius: 8px; --radius-lg: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #1e1e1c; --bg2: #2a2a28; --bg3: #333330;
+    --text: #f0f0ec; --text2: #a0a09c; --text3: #6b6b68;
+    --border: rgba(255,255,255,0.1); --border2: rgba(255,255,255,0.18);
+    --success: #5dcaa5; --warning: #ef9f27; --danger: #f09595;
+    --success-bg: #085041; --warning-bg: #633806; --danger-bg: #791f1f;
+    --info: #85b7eb; --info-bg: #0c447c;
+  }
+}
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg3); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.6; }
+.page { max-width: 1080px; margin: 0 auto; padding: 2rem 1.5rem; }
+.header { margin-bottom: 1.75rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+.header h1 { font-size: 20px; font-weight: 500; }
+.header p { font-size: 13px; color: var(--text2); }
+.project-badge { font-size: 13px; font-weight: 500; background: var(--info-bg); color: var(--info); padding: 4px 12px; border-radius: 999px; display: none; }
+.card { background: var(--bg); border: 0.5px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem; margin-bottom: 1.25rem; }
+.card-title { font-size: 12px; font-weight: 500; color: var(--text2); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 1rem; display: flex; align-items: center; gap: 6px; }
+.row { display: flex; gap: 12px; flex-wrap: wrap; }
+.field { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 130px; }
+.field label { font-size: 12px; color: var(--text2); }
+.field input { height: 36px; padding: 0 10px; border: 0.5px solid var(--border2); border-radius: var(--radius); font-size: 14px; background: var(--bg2); color: var(--text); width: 100%; font-family: inherit; }
+.field input:focus { outline: none; border-color: var(--info); box-shadow: 0 0 0 2px rgba(24,95,165,0.12); }
+.btn { height: 36px; padding: 0 16px; border: 0.5px solid var(--border2); border-radius: var(--radius); background: var(--text); color: var(--bg); font-size: 13px; cursor: pointer; font-family: inherit; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.btn:hover { opacity: 0.85; } .btn:active { transform: scale(0.98); }
+.btn-outline { background: transparent; color: var(--text); }
+.btn-outline:hover { background: var(--bg2); }
+.btn-sm { height: 30px; padding: 0 12px; font-size: 12px; }
+.hint { font-size: 12px; color: var(--text3); margin-top: 6px; }
+.summary-block { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.25rem; }
+@media (max-width: 600px) { .summary-block { grid-template-columns: 1fr; } }
+.summary-card { background: var(--bg2); border-radius: var(--radius-lg); padding: 1rem 1.25rem; }
+.summary-card h3 { font-size: 13px; font-weight: 500; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
+.summary-row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; border-bottom: 0.5px solid var(--border); font-size: 13px; }
+.summary-row:last-child { border-bottom: none; font-weight: 500; }
+.summary-row span:first-child { color: var(--text2); }
+.ok { color: var(--success); } .warn { color: var(--warning); } .danger { color: var(--danger); }
+.table-wrap { overflow-x: auto; border: 0.5px solid var(--border); border-radius: var(--radius-lg); background: var(--bg); margin-bottom: 1.25rem; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 9px 12px; font-size: 11px; font-weight: 500; color: var(--text2); border-bottom: 0.5px solid var(--border); background: var(--bg2); text-transform: uppercase; letter-spacing: 0.03em; white-space: nowrap; }
+td { padding: 8px 12px; border-bottom: 0.5px solid var(--border); color: var(--text); vertical-align: top; }
+tr:last-child td { border-bottom: none; }
+tr.overestimate > td { background: var(--danger-bg); }
+tr.at-risk > td { background: var(--warning-bg); }
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500; white-space: nowrap; }
+.badge-danger { background: var(--danger-bg); color: var(--danger); }
+.badge-warning { background: var(--warning-bg); color: var(--warning); }
+.badge-success { background: var(--success-bg); color: var(--success); }
+.badge-info { background: var(--info-bg); color: var(--info); }
+.badge-neutral { background: var(--bg2); color: var(--text2); }
+.badge-art { background: #e1f5ee; color: #0f6e56; }
+.badge-anim { background: #eeedfe; color: #3c3489; }
+@media (prefers-color-scheme: dark) {
+  .badge-art { background: #085041; color: #5dcaa5; }
+  .badge-anim { background: #26215c; color: #afa9ec; }
+}
+.progress-wrap { display: flex; align-items: center; gap: 6px; margin-top: 3px; }
+.progress-bar { height: 5px; border-radius: 3px; background: var(--bg3); overflow: hidden; flex: 1; min-width: 40px; }
+.progress-fill { height: 100%; border-radius: 3px; }
+.progress-label { font-size: 11px; color: var(--text2); min-width: 28px; text-align: right; }
+.task-input-row { display: grid; grid-template-columns: 75px 1fr 140px 105px 80px 85px 85px 32px; gap: 6px; align-items: center; margin-bottom: 6px; }
+.task-input-row input, .task-input-row select { height: 32px; padding: 0 8px; border: 0.5px solid var(--border2); border-radius: var(--radius); font-size: 12px; background: var(--bg2); color: var(--text); font-family: inherit; width: 100%; }
+.task-input-row input:focus, .task-input-row select:focus { outline: none; border-color: var(--info); }
+.task-header { display: grid; grid-template-columns: 75px 1fr 140px 105px 80px 85px 85px 32px; gap: 6px; margin-bottom: 4px; }
+.task-header span { font-size: 11px; color: var(--text2); text-transform: uppercase; letter-spacing: 0.03em; }
+.del-btn { height: 32px; width: 32px; border: 0.5px solid var(--border); border-radius: var(--radius); background: transparent; color: var(--text3); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.del-btn:hover { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
+.tab-bar { display: flex; gap: 4px; margin-bottom: 1.25rem; }
+.tab { padding: 6px 14px; border-radius: var(--radius); font-size: 13px; cursor: pointer; border: 0.5px solid transparent; color: var(--text2); background: transparent; font-family: inherit; }
+.tab.active { background: var(--bg); border-color: var(--border2); color: var(--text); font-weight: 500; }
+.tab:hover:not(.active) { background: var(--bg2); }
+.tab-content { display: none; }
+.tab-content.active { display: block; }
+.saved-note { font-size: 11px; color: var(--success); display: none; margin-left: 8px; align-items: center; gap: 4px; }
+
+/* Comment cell in report */
+.comment-cell { display: flex; flex-direction: column; gap: 4px; min-width: 180px; }
+.comment-textarea { width: 100%; min-height: 54px; padding: 6px 8px; border: 0.5px solid var(--border2); border-radius: var(--radius); font-size: 12px; background: var(--bg); color: var(--text); font-family: inherit; resize: vertical; line-height: 1.4; }
+.comment-textarea:focus { outline: none; border-color: var(--info); }
+.comment-textarea::placeholder { color: var(--text3); }
+.problems-empty { text-align: center; padding: 1.5rem; color: var(--text2); font-size: 13px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <div>
+      <h1>PM Time Tracker</h1>
+      <p>Тайм менеджмент проекту — автоматичний підрахунок подушки та проблемних задач</p>
+    </div>
+    <span class="project-badge" id="project-badge"></span>
+  </div>
+
+  <div class="tab-bar">
+    <button class="tab active" onclick="switchTab('setup')"><i class="ti ti-settings"></i> Налаштування</button>
+    <button class="tab" onclick="switchTab('tasks')"><i class="ti ti-list"></i> Задачі</button>
+    <button class="tab" onclick="switchTab('report')"><i class="ti ti-chart-bar"></i> Звіт</button>
+  </div>
+
+  <!-- SETUP -->
+  <div class="tab-content active" id="tab-setup">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-file-description"></i> Проект</div>
+      <div class="row">
+        <div class="field">
+          <label>Назва проекту</label>
+          <input type="text" id="projectName" placeholder="Hot Offer 3" oninput="autoSave()" />
+        </div>
+        <div class="field" style="max-width:140px;">
+          <label>Jira key</label>
+          <input type="text" id="projectKey" placeholder="HO3" oninput="autoSave()" />
+        </div>
+        <div class="field" style="max-width:180px;">
+          <label>Клієнт</label>
+          <input type="text" id="client" placeholder="Bang Bang Games" oninput="autoSave()" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-palette"></i> Арт — estimate</div>
+      <div class="row">
+        <div class="field">
+          <label>SOW estimate, год</label>
+          <input type="number" id="artSOW" placeholder="257" min="0" oninput="autoSave()" />
+        </div>
+        <div class="field">
+          <label>Подушка стартова, год</label>
+          <input type="number" id="artBuffer" placeholder="17.5" min="0" step="0.5" oninput="autoSave()" />
+        </div>
+      </div>
+      <p class="hint">SOW — зафіксовано в контракті. Подушка — закладена понад real estimate.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-movie"></i> Анімація — estimate</div>
+      <div class="row">
+        <div class="field">
+          <label>SOW estimate, год</label>
+          <input type="number" id="animSOW" placeholder="115" min="0" oninput="autoSave()" />
+        </div>
+        <div class="field">
+          <label>Подушка стартова, год</label>
+          <input type="number" id="animBuffer" placeholder="0" min="0" step="0.5" oninput="autoSave()" />
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title"><i class="ti ti-users"></i> Аніматори</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Задачі цих людей → анімація. Решта → арт.</p>
+      <div id="animators-list"></div>
+      <button class="btn btn-outline btn-sm" onclick="addAnimator()" style="margin-top:8px;">
+        <i class="ti ti-plus"></i> Додати аніматора
+      </button>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="btn" onclick="switchTab('tasks')">До задач <i class="ti ti-arrow-right"></i></button>
+      <span class="saved-note" id="saved-note"><i class="ti ti-check"></i> Збережено</span>
+    </div>
+  </div>
+
+  <!-- TASKS -->
+  <div class="tab-content" id="tab-tasks">
+    <div class="card">
+      <div class="card-title"><i class="ti ti-list-check"></i> Задачі проекту</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Тип визначається автоматично по виконавцю.</p>
+      <div class="task-header">
+        <span>Key</span><span>Назва</span><span>Виконавець</span>
+        <span>Статус</span><span>Original</span><span>Spent</span><span>Remaining</span><span></span>
+      </div>
+      <div id="tasks-list"></div>
+      <button class="btn btn-outline btn-sm" onclick="addTask()" style="margin-top:8px;">
+        <i class="ti ti-plus"></i> Додати задачу
+      </button>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-outline" onclick="switchTab('setup')"><i class="ti ti-arrow-left"></i> Налаштування</button>
+      <button class="btn" onclick="switchTab('report')">Переглянути звіт <i class="ti ti-arrow-right"></i></button>
+    </div>
+  </div>
+
+  <!-- REPORT -->
+  <div class="tab-content" id="tab-report">
+    <div id="report-content">
+      <p style="color:var(--text2);text-align:center;padding:2rem;">Заповни налаштування і задачі щоб побачити звіт</p>
+    </div>
+    <div style="margin-top:1rem;">
+      <button class="btn btn-outline" onclick="switchTab('tasks')"><i class="ti ti-arrow-left"></i> Назад до задач</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let state = {
+  projectName:'', projectKey:'', client:'',
+  artSOW:0, artBuffer:0, animSOW:0, animBuffer:0,
+  animators:[], tasks:[], comments:{}
+};
+
+const STATUSES = ['TO DO','IN PROGRESS','ON DELIVERY','ON HOLD','EDITS','EXPORT','DONE'];
+
+function loadState() {
+  try { const s = localStorage.getItem('picshot-tracker-v2'); if(s) state = JSON.parse(s); } catch(e){}
+  renderAll();
+}
+function saveState() {
+  try { localStorage.setItem('picshot-tracker-v2', JSON.stringify(state)); } catch(e){}
+}
+function autoSave() {
+  state.projectName = document.getElementById('projectName').value;
+  state.projectKey  = document.getElementById('projectKey').value;
+  state.client      = document.getElementById('client').value;
+  state.artSOW      = parseFloat(document.getElementById('artSOW').value)    || 0;
+  state.artBuffer   = parseFloat(document.getElementById('artBuffer').value)  || 0;
+  state.animSOW     = parseFloat(document.getElementById('animSOW').value)    || 0;
+  state.animBuffer  = parseFloat(document.getElementById('animBuffer').value) || 0;
+  saveState(); updateBadge(); showSaved();
+}
+function showSaved() {
+  const el = document.getElementById('saved-note');
+  el.style.display = 'inline-flex';
+  clearTimeout(window._st);
+  window._st = setTimeout(()=>{ el.style.display='none'; }, 1800);
+}
+function updateBadge() {
+  const b = document.getElementById('project-badge');
+  const k = state.projectKey || state.projectName;
+  if(k){ b.textContent = k; b.style.display='inline-flex'; } else b.style.display='none';
+}
+function switchTab(name) {
+  document.querySelectorAll('.tab-content').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el=>el.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  const idx = ['setup','tasks','report'].indexOf(name);
+  document.querySelectorAll('.tab')[idx].classList.add('active');
+  if(name==='report') recalc();
+}
+
+// ANIMATORS
+function renderAnimators() {
+  document.getElementById('animators-list').innerHTML = state.animators.map((a,i)=>`
+    <div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;">
+      <input type="text" value="${a}" placeholder="Ім'я аніматора"
+        style="height:32px;padding:0 8px;border:0.5px solid var(--border2);border-radius:var(--radius);font-size:13px;background:var(--bg2);color:var(--text);font-family:inherit;flex:1;"
+        oninput="state.animators[${i}]=this.value;saveState();" />
+      <button class="del-btn" onclick="state.animators.splice(${i},1);saveState();renderAnimators();"><i class="ti ti-x"></i></button>
+    </div>`).join('');
+}
+function addAnimator() {
+  state.animators.push(''); saveState(); renderAnimators();
+  document.querySelectorAll('#animators-list input')[state.animators.length-1]?.focus();
+}
+function isAnimator(name) {
+  if(!name) return false;
+  return state.animators.some(a=>a&&a.trim().toLowerCase()===name.trim().toLowerCase());
+}
+
+// TASKS
+function renderTasks() {
+  const list = document.getElementById('tasks-list');
+  if(!state.tasks.length){
+    list.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0;">Немає задач.</div>'; return;
+  }
+  list.innerHTML = state.tasks.map((t,i)=>`
+    <div class="task-input-row" id="tr-${i}">
+      <input type="text"   value="${t.key||''}"       placeholder="HO3-1"         oninput="state.tasks[${i}].key=this.value;saveState();" />
+      <input type="text"   value="${t.summary||''}"   placeholder="Назва задачі"   oninput="state.tasks[${i}].summary=this.value;saveState();" />
+      <input type="text"   value="${t.assignee||''}"  placeholder="Ім'я виконавця" oninput="state.tasks[${i}].assignee=this.value;saveState();" />
+      <select onchange="state.tasks[${i}].status=this.value;saveState();">
+        ${STATUSES.map(s=>`<option value="${s}" ${t.status===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+      <input type="number" value="${t.original||''}"  placeholder="0" min="0" step="0.5" oninput="state.tasks[${i}].original=parseFloat(this.value)||0;saveState();" />
+      <input type="number" value="${t.spent||''}"     placeholder="0" min="0" step="0.5" oninput="state.tasks[${i}].spent=parseFloat(this.value)||0;saveState();" />
+      <input type="number" value="${t.remaining||''}" placeholder="0" min="0" step="0.5" oninput="state.tasks[${i}].remaining=parseFloat(this.value)||0;saveState();" />
+      <button class="del-btn" onclick="state.tasks.splice(${i},1);saveState();renderTasks();"><i class="ti ti-x"></i></button>
+    </div>`).join('');
+}
+function addTask() {
+  state.tasks.push({key:'',summary:'',assignee:'',status:'TO DO',original:0,spent:0,remaining:0});
+  saveState(); renderTasks();
+  document.querySelector(`#tr-${state.tasks.length-1} input`)?.focus();
+}
+
+// REPORT
+function getFlag(orig, rem) {
+  if(!orig) return {label:'—', cls:'badge-neutral'};
+  if(rem > orig) return {label:'Overestimate', cls:'badge-danger'};
+  if(rem > orig*0.8 && rem>0) return {label:'At risk', cls:'badge-warning'};
+  if(rem===0) return {label:'Виконано', cls:'badge-success'};
+  return {label:'OK', cls:'badge-success'};
+}
+function isProblem(t) {
+  const orig = parseFloat(t.original)||0;
+  const rem  = parseFloat(t.remaining)||0;
+  return orig && (rem > orig || (rem > orig*0.8 && rem>0));
+}
+function statusBadge(s) {
+  const sl=(s||'').toLowerCase();
+  if(sl.includes('done')) return `<span class="badge badge-success">${s}</span>`;
+  if(sl.includes('delivery')||sl.includes('progress')) return `<span class="badge badge-info">${s}</span>`;
+  if(sl.includes('hold')||sl.includes('waiting')) return `<span class="badge badge-warning">${s}</span>`;
+  return `<span class="badge badge-neutral">${s}</span>`;
+}
+function progressCell(spent, orig) {
+  const val = `<strong>${spent||0}</strong>`;
+  if(!orig) return val;
+  const pct = Math.min(Math.round((spent/orig)*100),100);
+  const color = pct>=100?'var(--danger)':pct>=80?'var(--warning)':'var(--success)';
+  return `${val}<div class="progress-wrap"><div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${color};"></div></div><span class="progress-label">${pct}%</span></div>`;
+}
+
+function buildRow(t, showComment) {
+  const orig = parseFloat(t.original)||0;
+  const spent= parseFloat(t.spent)||0;
+  const rem  = parseFloat(t.remaining)||0;
+  const flag = getFlag(orig,rem);
+  const rowCls = orig&&rem>orig?'overestimate':orig&&rem>orig*0.8&&rem>0?'at-risk':'';
+  const typeBadge = isAnimator(t.assignee)
+    ? '<span class="badge badge-anim">анімація</span>'
+    : '<span class="badge badge-art">арт</span>';
+  const commentId = `comment-${t.key||t.summary}`;
+  const savedComment = state.comments[commentId]||'';
+  const commentCell = showComment ? `
+    <td>
+      <div class="comment-cell">
+        <textarea class="comment-textarea" placeholder="Коментар ПМа…" oninput="state.comments['${commentId}']=this.value;saveState();">${savedComment}</textarea>
+        ${savedComment ? `<span style="font-size:11px;color:var(--success);"><i class="ti ti-check"></i> Збережено</span>` : ''}
+      </div>
+    </td>` : '<td></td>';
+
+  return `<tr class="${rowCls}">
+    <td style="font-size:12px;color:var(--text2);white-space:nowrap;">${t.key||'—'}</td>
+    <td style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${t.summary}">${t.summary||'—'}</td>
+    <td>${t.assignee||'—'}</td>
+    <td>${typeBadge}</td>
+    <td>${statusBadge(t.status)}</td>
+    <td>${orig||'—'}</td>
+    <td>${progressCell(spent,orig)}</td>
+    <td>${rem||0}</td>
+    <td><span class="badge ${flag.cls}">${flag.label}</span></td>
+    ${commentCell}
+  </tr>`;
+}
+
+function recalc() {
+  const artSOW = parseFloat(state.artSOW)||0;
+  const artBuf = parseFloat(state.artBuffer)||0;
+  const animSOW= parseFloat(state.animSOW)||0;
+  const animBuf= parseFloat(state.animBuffer)||0;
+
+  let aS=0,aR=0,aO=0, nS=0,nR=0,nO=0;
+  const problems=[];
+
+  state.tasks.forEach(t=>{
+    const o=parseFloat(t.original)||0, s=parseFloat(t.spent)||0, r=parseFloat(t.remaining)||0;
+    if(isAnimator(t.assignee)){ nS+=s;nR+=r;nO+=o; } else { aS+=s;aR+=r;aO+=o; }
+    if(isProblem(t)) problems.push(t);
+  });
+
+  const artBufUsed  = Math.max(0,+((artBuf-(artSOW-aS-aR)).toFixed(1)));
+  const artBufLeft  = Math.max(0,+(artBuf-artBufUsed).toFixed(1));
+  const animBufUsed = Math.max(0,+((animBuf-(animSOW-nS-nR)).toFixed(1)));
+  const animBufLeft = Math.max(0,+(animBuf-animBufUsed).toFixed(1));
+
+  const artPct  = artSOW  ? Math.round(aS/artSOW*100)  : 0;
+  const animPct = animSOW ? Math.round(nS/animSOW*100) : 0;
+
+  const cc = (p) => p>=100?'danger':p>=80?'warn':'ok';
+  const bc = (l,s) => !s?'':(l/s<=0?'danger':l/s<=0.3?'warn':'ok');
+
+  document.getElementById('report-content').innerHTML = `
+    <div class="summary-block">
+      <div class="summary-card">
+        <h3><i class="ti ti-palette" style="color:var(--success)"></i> Арт</h3>
+        <div class="summary-row"><span>SOW estimate</span><span>${artSOW} год</span></div>
+        <div class="summary-row"><span>Затрековано</span><span class="${cc(artPct)}">${aS.toFixed(1)} год (${artPct}%)</span></div>
+        <div class="summary-row"><span>Залишилось в задачах</span><span>${aR.toFixed(1)} год</span></div>
+        <div class="summary-row"><span>Подушка стартова</span><span>${artBuf} год</span></div>
+        <div class="summary-row"><span>Подушка використана</span><span class="${artBufUsed>artBuf?'danger':''}">${artBufUsed.toFixed(1)} год</span></div>
+        <div class="summary-row"><span>Подушка залишилась</span><span class="${bc(artBufLeft,artBuf)}">${artBufLeft.toFixed(1)} год</span></div>
+        <div class="summary-row"><span>Залишилось всього</span><span><strong>${(aR+artBufLeft).toFixed(1)} год</strong></span></div>
+      </div>
+      <div class="summary-card">
+        <h3><i class="ti ti-movie" style="color:var(--info)"></i> Анімація</h3>
+        <div class="summary-row"><span>SOW estimate</span><span>${animSOW} год</span></div>
+        <div class="summary-row"><span>Затрековано</span><span class="${cc(animPct)}">${nS.toFixed(1)} год (${animPct}%)</span></div>
+        <div class="summary-row"><span>Залишилось в задачах</span><span>${nR.toFixed(1)} год</span></div>
+        <div class="summary-row"><span>Подушка стартова</span><span>${animBuf} год</span></div>
+        <div class="summary-row"><span>Подушка використана</span><span class="${animBufUsed>animBuf?'danger':''}">${animBufUsed.toFixed(1)} год</span></div>
+        <div class="summary-row"><span>Подушка залишилась</span><span class="${bc(animBufLeft,animBuf)}">${animBufLeft.toFixed(1)} год</span></div>
+        <div class="summary-row"><span>Залишилось всього</span><span><strong>${(nR+animBufLeft).toFixed(1)} год</strong></span></div>
+      </div>
+    </div>
+
+    <div style="margin-bottom:1.25rem;">
+      <div class="card-title" style="margin-bottom:10px;">
+        <i class="ti ti-alert-triangle"></i> Проблемні задачі (${problems.length})
+        <span style="font-size:11px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;">— підсвічені автоматично, PM вирішує чи є проблема і додає коментар</span>
+      </div>
+      ${problems.length ? `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:70px">Key</th><th>Задача</th><th style="width:120px">Виконавець</th>
+            <th style="width:80px">Тип</th><th style="width:100px">Статус</th>
+            <th style="width:75px">Orig h</th><th style="width:95px">Spent h</th>
+            <th style="width:75px">Rem h</th><th style="width:105px">Прапор</th>
+            <th style="min-width:200px">Коментар ПМа</th>
+          </tr></thead>
+          <tbody>${problems.map(t=>buildRow(t,true)).join('')}</tbody>
+        </table>
+      </div>` : `<div class="problems-empty">🎉 Проблемних задач немає</div>`}
+    </div>
+
+    <div>
+      <div class="card-title" style="margin-bottom:10px;"><i class="ti ti-list-check"></i> Всі задачі (${state.tasks.length})</div>
+      ${state.tasks.length ? `
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th style="width:70px">Key</th><th>Задача</th><th style="width:120px">Виконавець</th>
+            <th style="width:80px">Тип</th><th style="width:100px">Статус</th>
+            <th style="width:75px">Orig h</th><th style="width:95px">Spent h</th>
+            <th style="width:75px">Rem h</th><th style="width:105px">Стан</th><th></th>
+          </tr></thead>
+          <tbody>${state.tasks.map(t=>buildRow(t,false)).join('')}</tbody>
+        </table>
+      </div>` : `<div class="problems-empty">Задач немає — перейди на вкладку «Задачі»</div>`}
+    </div>`;
+}
+
+function renderAll() {
+  document.getElementById('projectName').value = state.projectName||'';
+  document.getElementById('projectKey').value  = state.projectKey||'';
+  document.getElementById('client').value      = state.client||'';
+  document.getElementById('artSOW').value      = state.artSOW||'';
+  document.getElementById('artBuffer').value   = state.artBuffer||'';
+  document.getElementById('animSOW').value     = state.animSOW||'';
+  document.getElementById('animBuffer').value  = state.animBuffer||'';
+  renderAnimators(); renderTasks(); updateBadge();
+}
+
+loadState();
+</script>
+</body>
+</html>
