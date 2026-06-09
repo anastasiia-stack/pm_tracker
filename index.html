@@ -98,116 +98,116 @@ tr.oe>td{background:var(--err-bg);}tr.ar>td{background:var(--warn-bg);}tr.nt>td{
 <body>
 <div class="modal" id="jmodal">
   <div class="mbox">
-    <h2>Load from Jira</h2>
-    <p>Enter credentials once - saved in browser</p>
+    <h2>Підтягнути з Jira</h2>
+    <p>Введи дані один раз — збережуться в браузері</p>
     <div id="jerr"></div>
     <div style="display:flex;flex-direction:column;gap:10px;">
       <div class="f"><label>Jira domain</label><input id="jd" placeholder="yourcompany.atlassian.net"/></div>
       <div class="f"><label>Email</label><input id="je" placeholder="you@company.com"/></div>
       <div class="f"><label>API token</label><input id="jt" type="password" placeholder="your token"/></div>
     </div>
-    <p class="hint" style="margin-top:8px;">Jira -> Profile -> Security -> API tokens</p>
+    <p class="hint" style="margin-top:8px;">Jira → Profile → Security → API tokens</p>
     <div class="mact">
-      <button class="btn btn-o" onclick="closeModal()">Cancel</button>
-      <button class="btn btn-jira" id="jbtn" onclick="fetchJira()">Load tasks</button>
+      <button class="btn btn-o" onclick="closeModal()">Скасувати</button>
+      <button class="btn btn-jira" id="jbtn" onclick="fetchJira()">Завантажити задачі</button>
     </div>
   </div>
 </div>
 <div class="modal" id="resetmodal">
   <div class="mbox">
-    <h2>New project</h2>
-    <p>All data will be cleared. Continue?</p>
+    <h2>Новий проект</h2>
+    <p>Всі дані поточного проекту будуть видалені. Продовжити?</p>
     <div class="mact">
-      <button class="btn btn-o" onclick="document.getElementById('resetmodal').classList.remove('on')">Cancel</button>
-      <button class="btn btn-reset" onclick="doReset()">Clear and start new</button>
+      <button class="btn btn-o" onclick="document.getElementById('resetmodal').classList.remove('on')">Скасувати</button>
+      <button class="btn btn-reset" onclick="doReset()">Очистити і почати новий</button>
     </div>
   </div>
 </div>
 <div class="page">
   <div class="header">
-    <div><h1>PM Time Tracker</h1><p class="sub">Time management - buffer, problem tasks, simulation</p></div>
+    <div><h1>PM Time Tracker</h1><p class="sub">Тайм менеджмент — підрахунок подушки, проблемні задачі, симуляція</p></div>
     <div style="display:flex;gap:8px;align-items:center;">
       <span class="badge" id="pbadge"></span>
-      <button class="btn btn-reset btn-sm" onclick="document.getElementById('resetmodal').classList.add('on')">+ New project</button>
+      <button class="btn btn-reset btn-sm" onclick="document.getElementById('resetmodal').classList.add('on')">+ Новий проект</button>
     </div>
   </div>
   <div class="tabs">
-    <button class="tab on" onclick="go('setup')">Settings</button>
-    <button class="tab" onclick="go('tasks')">Tasks</button>
-    <button class="tab" onclick="go('report')">Report</button>
+    <button class="tab on" onclick="go('setup')">Налаштування</button>
+    <button class="tab" onclick="go('tasks')">Задачі</button>
+    <button class="tab" onclick="go('report')">Звіт</button>
   </div>
   <div class="pane on" id="pane-setup">
     <div class="card">
-      <div class="ctitle">Project</div>
+      <div class="ctitle">Проект</div>
       <div class="row">
-        <div class="f"><label>Project name</label><input id="pname" placeholder="Hot Offer 3" oninput="save()"/></div>
+        <div class="f"><label>Назва проекту</label><input id="pname" placeholder="Hot Offer 3" oninput="save()"/></div>
         <div class="f" style="max-width:140px"><label>Jira key</label><input id="pkey" placeholder="HO3" oninput="save()"/></div>
-        <div class="f" style="max-width:180px"><label>Client</label><input id="pclient" placeholder="Bang Bang Games" oninput="save()"/></div>
+        <div class="f" style="max-width:180px"><label>Клієнт</label><input id="pclient" placeholder="Bang Bang Games" oninput="save()"/></div>
       </div>
     </div>
     <div class="card">
-      <div class="ctitle">Art - estimate</div>
+      <div class="ctitle">Арт — estimate</div>
       <div class="row">
-        <div class="f"><label>SOW estimate, h</label><input type="number" id="asow" placeholder="257" min="0" oninput="save();calcbuf('a')"/></div>
-        <div class="f"><label>Real estimate (team), h</label><input type="number" id="areal" placeholder="239.5" min="0" step="0.5" oninput="save();calcbuf('a')"/></div>
-        <div class="f" style="max-width:170px"><label>Buffer initial (auto), h</label><input type="number" id="abuf" readonly/></div>
+        <div class="f"><label>SOW estimate, год</label><input type="number" id="asow" placeholder="257" min="0" oninput="save();calcbuf('a')"/></div>
+        <div class="f"><label>Real estimate (для команди), год</label><input type="number" id="areal" placeholder="239.5" min="0" step="0.5" oninput="save();calcbuf('a')"/></div>
+        <div class="f" style="max-width:170px"><label>Подушка початкова (авто), год</label><input type="number" id="abuf" readonly/></div>
       </div>
-      <p class="hint">Buffer = SOW - Real estimate. Update current buffer weekly in Report.</p>
+      <p class="hint">Подушка = SOW − Real estimate. Актуальну подушку оновлюй щотижня у Звіті.</p>
     </div>
     <div class="card">
-      <div class="ctitle">Animation - estimate</div>
+      <div class="ctitle">Анімація — estimate</div>
       <div class="row">
-        <div class="f"><label>SOW estimate, h</label><input type="number" id="nsow" placeholder="115" min="0" oninput="save();calcbuf('n')"/></div>
-        <div class="f"><label>Real estimate (team), h</label><input type="number" id="nreal" placeholder="115" min="0" step="0.5" oninput="save();calcbuf('n')"/></div>
-        <div class="f" style="max-width:170px"><label>Buffer initial (auto), h</label><input type="number" id="nbuf" readonly/></div>
+        <div class="f"><label>SOW estimate, год</label><input type="number" id="nsow" placeholder="115" min="0" oninput="save();calcbuf('n')"/></div>
+        <div class="f"><label>Real estimate (для команди), год</label><input type="number" id="nreal" placeholder="115" min="0" step="0.5" oninput="save();calcbuf('n')"/></div>
+        <div class="f" style="max-width:170px"><label>Подушка початкова (авто), год</label><input type="number" id="nbuf" readonly/></div>
       </div>
     </div>
     <div class="card">
-      <div class="ctitle">Animators</div>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Tasks assigned to these people = animation. Others = art.</p>
+      <div class="ctitle">Аніматори</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Задачі цих людей → анімація. Решта → арт.</p>
       <div id="alist"></div>
-      <button class="btn btn-o btn-sm" style="margin-top:8px" onclick="addAnim()">+ Add animator</button>
+      <button class="btn btn-o btn-sm" style="margin-top:8px" onclick="addAnim()">+ Додати аніматора</button>
     </div>
     <div style="display:flex;gap:10px;align-items:center;">
-      <button class="btn" onclick="go('tasks')">To tasks &rarr;</button>
-      <span class="saved" id="sv">Saved</span>
+      <button class="btn" onclick="go('tasks')">До задач →</button>
+      <span class="saved" id="sv">Збережено</span>
     </div>
   </div>
   <div class="pane" id="pane-tasks">
     <div class="card">
-      <div class="ctitle">Project tasks</div>
+      <div class="ctitle">Задачі проекту</div>
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
-        <button class="btn btn-jira" onclick="openModal()">Load from Jira</button>
-        <span style="font-size:12px;color:var(--text2);">or add manually below</span>
+        <button class="btn btn-jira" onclick="openModal()">Підтягнути з Jira</button>
+        <span style="font-size:12px;color:var(--text2);">або додай вручну нижче</span>
       </div>
       <div id="jstatus"></div>
-      <div class="th"><span>Key</span><span>Name</span><span>Assignee</span><span>Status</span><span>Original</span><span>Spent</span><span>Remaining</span><span></span></div>
+      <div class="th"><span>Key</span><span>Назва</span><span>Виконавець</span><span>Статус</span><span>Original</span><span>Spent</span><span>Remaining</span><span></span></div>
       <div id="tlist"></div>
-      <button class="btn btn-o btn-sm" style="margin-top:8px" onclick="addTask()">+ Add manually</button>
+      <button class="btn btn-o btn-sm" style="margin-top:8px" onclick="addTask()">+ Додати вручну</button>
     </div>
     <div style="display:flex;gap:10px;">
-      <button class="btn btn-o" onclick="go('setup')">&larr; Settings</button>
-      <button class="btn" onclick="go('report')">View report &rarr;</button>
+      <button class="btn btn-o" onclick="go('setup')">← Налаштування</button>
+      <button class="btn" onclick="go('report')">Переглянути звіт →</button>
     </div>
   </div>
   <div class="pane" id="pane-report">
     <div class="export-bar">
-      <button class="btn btn-export" onclick="exportExcel()">Export Excel</button>
-      <button class="btn btn-ok" onclick="copyReport()">Copy report</button>
-      <span class="copy-ok" id="copy-ok">Copied!</span>
+      <button class="btn btn-export" onclick="exportExcel()">↓ Експорт в Excel</button>
+      <button class="btn btn-ok" onclick="copyReport()">⎘ Копіювати звіт</button>
+      <span class="copy-ok" id="copy-ok">Скопійовано!</span>
     </div>
     <div id="rpt"></div>
-    <div style="margin-top:1rem;"><button class="btn btn-o" onclick="go('tasks')">&larr; Back to tasks</button></div>
+    <div style="margin-top:1rem;"><button class="btn btn-o" onclick="go('tasks')">← Назад до задач</button></div>
   </div>
 </div>
 <script>
-var S={pname:'',pkey:'',pclient:'',asow:0,areal:0,abuf:0,nsow:0,nreal:0,nbuf:0,aBufCurrent:-99999,nBufCurrent:-99999,anims:[],tasks:[],comments:{},simActions:{},manualProblems:{}};
+var S={pname:'',pkey:'',pclient:'',asow:0,areal:0,abuf:0,nsow:0,nreal:0,nbuf:0,aBufCurrent:-99999,nBufCurrent:-99999,anims:[],tasks:[],comments:{},simActions:{},вручнуProblems:{}};
 var JC={domain:'',email:'',token:''};
 var ST=['TO DO','IN PROGRESS','ON DELIVERY','ON HOLD','EDITS','EXPORT','DONE'];
 var SIM_OPS=['— не обрано —','Забрати час в подушку','Додати час з подушки','Нічого не робити'];
 
 function loadAll(){
-  try{var s=localStorage.getItem('pmt8');if(s){var p=JSON.parse(s);if(!p.manualProblems)p.manualProblems={};S=p;}}catch(e){}
+  try{var s=localStorage.getItem('pmt8');if(s){var p=JSON.parse(s);if(!p.вручнуProblems)p.вручнуProblems={};S=p;}}catch(e){}
   try{var j=localStorage.getItem('pmtj');if(j)JC=JSON.parse(j);}catch(e){}
   renderAll();
 }
@@ -238,14 +238,14 @@ function go(n){
   if(n==='report')report();
 }
 function doReset(){
-  S={pname:'',pkey:'',pclient:'',asow:0,areal:0,abuf:0,nsow:0,nreal:0,nbuf:0,aBufCurrent:-99999,nBufCurrent:-99999,anims:[],tasks:[],comments:{},simActions:{},manualProblems:{}};
+  S={pname:'',pkey:'',pclient:'',asow:0,areal:0,abuf:0,nsow:0,nreal:0,nbuf:0,aBufCurrent:-99999,nBufCurrent:-99999,anims:[],tasks:[],comments:{},simActions:{},вручнуProblems:{}};
   saveAll();renderAll();document.getElementById('resetmodal').classList.remove('on');go('setup');
 }
 function renderAnims(){
   var h='';
   for(var i=0;i<S.anims.length;i++){
     h+='<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;">'
-     +'<input type="text" value="'+esc(S.anims[i])+'" placeholder="Name" style="height:32px;padding:0 8px;border:.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);font-family:inherit;flex:1;" data-ai="'+i+'" oninput="S.anims[this.dataset.ai]=this.value;saveAll();">'
+     +'<input type="text" value="'+esc(S.anims[i])+'" placeholder="Назва" style="height:32px;padding:0 8px;border:.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);font-family:inherit;flex:1;" data-ai="'+i+'" oninput="S.anims[this.dataset.ai]=this.value;saveAll();">'
      +'<button class="xbtn" data-ai="'+i+'" onclick="S.anims.splice(+this.dataset.ai,1);saveAll();renderAnims();">x</button>'
      +'</div>';
   }
@@ -260,15 +260,15 @@ function isAnim(name){
 function calcRem(t){return parseFloat(((parseFloat(t.original)||0)-(parseFloat(t.spent)||0)).toFixed(1));}
 function renderTasks(){
   var list=document.getElementById('tlist');
-  if(!S.tasks.length){list.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0;">No tasks.</div>';return;}
+  if(!S.tasks.length){list.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0;">Немає задач.</div>';return;}
   var h='';
   for(var i=0;i<S.tasks.length;i++){
     var t=S.tasks[i],rem=calcRem(t),sopts='';
     for(var s=0;s<ST.length;s++)sopts+='<option value="'+ST[s]+'"'+(t.status===ST[s]?' selected':'')+'>'+ST[s]+'</option>';
     h+='<div class="tr" id="tr'+i+'">'
      +'<input type="text" value="'+esc(t.key||'')+'" placeholder="HO3-1" data-i="'+i+'" data-f="key" oninput="updTask(this)">'
-     +'<input type="text" value="'+esc(t.summary||'')+'" placeholder="Task name" data-i="'+i+'" data-f="summary" oninput="updTask(this)">'
-     +'<input type="text" value="'+esc(t.assignee||'')+'" placeholder="Assignee" data-i="'+i+'" data-f="assignee" oninput="updTask(this)">'
+     +'<input type="text" value="'+esc(t.summary||'')+'" placeholder="Назва задачі" data-i="'+i+'" data-f="summary" oninput="updTask(this)">'
+     +'<input type="text" value="'+esc(t.assignee||'')+'" placeholder="Виконавець" data-i="'+i+'" data-f="assignee" oninput="updTask(this)">'
      +'<select data-i="'+i+'" onchange="S.tasks[+this.dataset.i].status=this.value;saveAll();">'+sopts+'</select>'
      +'<input type="number" value="'+(t.original||'')+'" placeholder="0" min="0" step="0.5" data-i="'+i+'" data-f="original" oninput="updTaskNum(this)">'
      +'<input type="number" value="'+(t.spent||'')+'" placeholder="0" min="0" step="0.5" data-i="'+i+'" data-f="spent" oninput="updTaskNum(this)">'
@@ -292,21 +292,21 @@ function fetchJira(){
   var errEl=document.getElementById('jerr');errEl.innerHTML='';
   if(!domain||!email||!token){errEl.innerHTML='<div class="err-msg">Fill all fields.</div>';return;}
   if(!key){errEl.innerHTML='<div class="err-msg">Enter Jira key in Settings.</div>';return;}
-  var btn=document.getElementById('jbtn');btn.disabled=true;btn.textContent='Loading...';
+  var btn=document.getElementById('jbtn');btn.disabled=true;btn.textContent='Завантажую...';
   var auth=btoa(email+':'+token);
   var jiraUrl='https://'+domain+'/rest/api/3/search/jql?jql=project="'+key+'" ORDER BY key ASC&fields=summary,status,assignee,timetracking&maxResults=100';
   var url='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(jiraUrl);
   fetch(url,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
     .then(function(r){
-      if(r.status===401)throw new Error('Wrong email or token.');
-      if(r.status===403)throw new Error('No access to project.');
-      if(r.status===400)throw new Error('Wrong project key.');
+      if(r.status===401)throw new Error('Невірний email або токен.');
+      if(r.status===403)throw new Error('Немає доступу до проекту.');
+      if(r.status===400)throw new Error('Невірний project key.');
       if(!r.ok)throw new Error('Jira error '+r.status+'.');
       return r.json();
     })
     .then(function(data){
       var issues=data.issues||[];
-      if(!issues.length)throw new Error('No tasks found in project '+key+'.');
+      if(!issues.length)throw new Error('Задач не знайдено в проекті '+key+'.');
       JC={domain:domain,email:email,token:token};
       try{localStorage.setItem('pmtj',JSON.stringify(JC));}catch(e){}
       var jkeys={};
@@ -314,16 +314,16 @@ function fetchJira(){
         jkeys[iss.key]=true;
         var tt=iss.fields.timetracking||{};
         var sn=iss.fields.status&&iss.fields.status.name?iss.fields.status.name:'TO DO';
-        return{key:iss.key,summary:iss.fields.summary||'',assignee:(iss.fields.assignee&&iss.fields.assignee.displayName)||'',status:sn,original:Math.round((tt.originalEstimateSeconds||0)/360)/10,spent:Math.round((tt.timeSpentSeconds||0)/360)/10,_j:true};
+        return{key:iss.key,summary:iss.fields.summary||'',assignee:(iss.fields.assignee&&iss.fields.assignee.displayНазва)||'',status:sn,original:Math.round((tt.originalEstimateSeconds||0)/360)/10,spent:Math.round((tt.timeSpentSeconds||0)/360)/10,_j:true};
       });
       S.tasks=newTasks.concat(S.tasks.filter(function(t){return !t._j&&!jkeys[t.key];}));
       saveAll();renderTasks();closeModal();
       var st=document.getElementById('jstatus');
-      st.innerHTML='<div style="background:var(--ok-bg);color:var(--ok);border-radius:var(--r);padding:8px 12px;font-size:13px;margin-bottom:12px;">Loaded '+newTasks.length+' tasks. Remaining = Original - Spent.</div>';
+      st.innerHTML='<div style="background:var(--ok-bg);color:var(--ok);border-radius:var(--r);padding:8px 12px;font-size:13px;margin-bottom:12px;">Завантажено '+newTasks.length+' tasks. Remaining = Original - Spent.</div>';
       setTimeout(function(){st.innerHTML='';},5000);
     })
     .catch(function(e){errEl.innerHTML='<div class="err-msg">'+e.message+'</div>';})
-    .finally(function(){btn.disabled=false;btn.textContent='Load tasks';});
+    .finally(function(){btn.disabled=false;btn.textContent='Завантажити задачі';});
 }
 function getSim(key){return S.simActions[key]||{op:'',hrs:0};}
 function setSim(key,field,val){if(!S.simActions[key])S.simActions[key]={op:'',hrs:0};S.simActions[key][field]=val;saveAll();report();}
@@ -336,11 +336,11 @@ function applySimToTask(t){
   return{rem:parseFloat(rem.toFixed(1)),bufDelta:bufDelta};
 }
 function flag(orig,spent,rem){
-  if(!orig&&!spent)return{l:'No tracking',c:'t-nt'};
-  if(!spent&&orig>0)return{l:'Not started',c:'t-nt'};
+  if(!orig&&!spent)return{l:'Без трекінгу',c:'t-nt'};
+  if(!spent&&orig>0)return{l:'Не розпочато',c:'t-nt'};
   if(rem>orig)return{l:'Overestimate',c:'t-err'};
   if(spent>orig*.8&&rem>0)return{l:'At risk',c:'t-warn'};
-  if(rem<=0)return{l:'Done',c:'t-ok'};
+  if(rem<=0)return{l:'Виконано',c:'t-ok'};
   return{l:'OK',c:'t-ok'};
 }
 function rowcls(orig,spent,rem){if(!spent)return'nt';if(rem>orig)return'oe';if(spent>orig*.8&&rem>0)return'ar';return'';}
@@ -356,10 +356,13 @@ function pcell(spent,orig){
   var pct=Math.min(Math.round(spent/orig*100),100),col=pct>=100?'var(--err)':pct>=80?'var(--warn)':'var(--ok)';
   return v+'<div class="pw"><div class="pb"><div class="pf" style="width:'+pct+'%;background:'+col+';"></div></div><span class="pl">'+pct+'%</span></div>';
 }
-function kpiTag(orig,spent){
-  if(!spent||!orig)return '<span style="color:var(--text3)">-</span>';
-  var k=Math.round(orig/spent*100);
-  return '<span class="tag '+(k>=115?'t-ok':k>=100?'t-info':k>=80?'t-warn':'t-err')+'">'+k+'%</span>';
+function kpiTag(orig,spent,simSpent){
+  var s=simSpent!==undefined?simSpent:spent;
+  if(!s||!orig)return '<span style="color:var(--text3)">-</span>';
+  var k=Math.round(orig/s*100);
+  var tag='<span class="tag '+(k>=115?'t-ok':k>=100?'t-info':k>=80?'t-warn':'t-err')+'">'+k+'%</span>';
+  if(simSpent!==undefined&&simSpent!==spent)tag='<span style="font-size:10px;color:var(--text3);text-decoration:line-through;">'+Math.round(orig/(spent||1)*100)+'%</span> '+tag;
+  return tag;
 }
 function getCurrentBuf(t){
   if(t==='a')return S.aBufCurrent>-99999?S.aBufCurrent:parseFloat((S.asow-S.areal).toFixed(1));
@@ -367,7 +370,7 @@ function getCurrentBuf(t){
 }
 function isProblem(t){
   var orig=parseFloat(t.original)||0,spent=parseFloat(t.spent)||0,rem=calcRem(t);
-  return (orig&&(!spent||(spent>orig*.8&&rem>0)||(rem>orig)))||(S.manualProblems&&S.manualProblems[t.key]);
+  return (orig&&(!spent||(spent>orig*.8&&rem>0)||(rem>orig)))||(S.вручнуProblems&&S.вручнуProblems[t.key]);
 }
 function calcTotals(){
   var abuf=parseFloat((S.asow-S.areal).toFixed(1)),nbuf=parseFloat((S.nsow-S.nreal).toFixed(1));
@@ -397,41 +400,41 @@ function cc(p){return p>=100?'danger':p>=80?'warn':'ok';}
 
 function report(){
   var T=calcTotals();
-  var hasSim=Object.keys(S.simActions).some(function(k){var a=S.simActions[k];return a&&a.op&&a.op!=='— не обрано —'&&a.op!=='Нічого не робити'&&a.hrs;});
+  var hasSim=Object.keys(S.simActions).some(function(k){var a=S.simActions[k];return a&&a.op&&a.op!=='— не обрано —'&&((a.op!=='Нічого не робити'&&a.hrs)||a.op==='Нічого не робити');});
   var h='';
 
-  // Summary cards
+  // Підсумок cards
   h+='<div class="sum2">';
-  h+='<div class="scard"><h3>Art</h3>';
+  h+='<div class="scard"><h3>Арт</h3>';
   h+='<div class="srow"><span>SOW estimate</span><span>'+S.asow+' h</span></div>';
   h+='<div class="srow"><span>Real estimate</span><span>'+S.areal+' h</span></div>';
-  h+='<div class="srow"><span>Buffer initial</span><span class="'+bc(T.abuf)+'">'+T.abuf+' h</span></div>';
-  h+='<div class="srow buf-edit"><span>Current buffer (this week)</span><input type="number" class="buf-input" value="'+T.aBufCur.toFixed(1)+'" step="0.5" data-t="a" onchange="updBuf(this)"></div>';
-  h+='<div class="srow"><span>Tracked</span><span class="'+cc(T.ap)+'">'+T.aS.toFixed(1)+' h ('+T.ap+'%)</span></div>';
-  h+='<div class="srow"><span>Remaining in tasks</span><span>'+T.aR.toFixed(1)+' h</span></div>';
-  h+='<div class="srow"><span>Total remaining</span><span class="'+bc(T.aR+T.aBufCur)+'"><strong>'+(T.aR+T.aBufCur).toFixed(1)+' h</strong></span></div>';
-  if(hasSim)h+='<div class="srow sim"><span>After simulation</span><span class="'+bc(T.aBufSim)+'"><strong>'+(T.aRemSim+T.aBufSim).toFixed(1)+' h</strong> (buf: '+T.aBufSim.toFixed(1)+' h)</span></div>';
+  h+='<div class="srow"><span>Подушка початкова</span><span class="'+bc(T.abuf)+'">'+T.abuf+' h</span></div>';
+  h+='<div class="srow buf-edit"><span>Актуальна подушка (цей тиждень)</span><input type="number" class="buf-input" value="'+T.aBufCur.toFixed(1)+'" step="0.5" data-t="a" onchange="updBuf(this)"></div>';
+  h+='<div class="srow"><span>Затрековано</span><span class="'+cc(T.ap)+'">'+T.aS.toFixed(1)+' h ('+T.ap+'%)</span></div>';
+  h+='<div class="srow"><span>Залишилось в задачах</span><span>'+T.aR.toFixed(1)+' h</span></div>';
+  h+='<div class="srow"><span>Залишилось всього</span><span class="'+bc(T.aR+T.aBufCur)+'"><strong>'+(T.aR+T.aBufCur).toFixed(1)+' h</strong></span></div>';
+  if(hasSim)h+='<div class="srow sim"><span>Після симуляції</span><span class="'+bc(T.aBufSim)+'"><strong>'+(T.aRemSim+T.aBufSim).toFixed(1)+' h</strong> (buf: '+T.aBufSim.toFixed(1)+' h)</span></div>';
   h+='</div>';
 
-  h+='<div class="scard"><h3>Animation</h3>';
+  h+='<div class="scard"><h3>Анімація</h3>';
   h+='<div class="srow"><span>SOW estimate</span><span>'+S.nsow+' h</span></div>';
   h+='<div class="srow"><span>Real estimate</span><span>'+S.nreal+' h</span></div>';
-  h+='<div class="srow"><span>Buffer initial</span><span class="'+bc(T.nbuf)+'">'+T.nbuf+' h</span></div>';
-  h+='<div class="srow buf-edit"><span>Current buffer (this week)</span><input type="number" class="buf-input" value="'+T.nBufCur.toFixed(1)+'" step="0.5" data-t="n" onchange="updBuf(this)"></div>';
-  h+='<div class="srow"><span>Tracked</span><span class="'+cc(T.np)+'">'+T.nS.toFixed(1)+' h ('+T.np+'%)</span></div>';
-  h+='<div class="srow"><span>Remaining in tasks</span><span>'+T.nR.toFixed(1)+' h</span></div>';
-  h+='<div class="srow"><span>Total remaining</span><span class="'+bc(T.nR+T.nBufCur)+'"><strong>'+(T.nR+T.nBufCur).toFixed(1)+' h</strong></span></div>';
-  if(hasSim)h+='<div class="srow sim"><span>After simulation</span><span class="'+bc(T.nBufSim)+'"><strong>'+(T.nRemSim+T.nBufSim).toFixed(1)+' h</strong> (buf: '+T.nBufSim.toFixed(1)+' h)</span></div>';
+  h+='<div class="srow"><span>Подушка початкова</span><span class="'+bc(T.nbuf)+'">'+T.nbuf+' h</span></div>';
+  h+='<div class="srow buf-edit"><span>Актуальна подушка (цей тиждень)</span><input type="number" class="buf-input" value="'+T.nBufCur.toFixed(1)+'" step="0.5" data-t="n" onchange="updBuf(this)"></div>';
+  h+='<div class="srow"><span>Затрековано</span><span class="'+cc(T.np)+'">'+T.nS.toFixed(1)+' h ('+T.np+'%)</span></div>';
+  h+='<div class="srow"><span>Залишилось в задачах</span><span>'+T.nR.toFixed(1)+' h</span></div>';
+  h+='<div class="srow"><span>Залишилось всього</span><span class="'+bc(T.nR+T.nBufCur)+'"><strong>'+(T.nR+T.nBufCur).toFixed(1)+' h</strong></span></div>';
+  if(hasSim)h+='<div class="srow sim"><span>Після симуляції</span><span class="'+bc(T.nBufSim)+'"><strong>'+(T.nRemSim+T.nBufSim).toFixed(1)+' h</strong> (buf: '+T.nBufSim.toFixed(1)+' h)</span></div>';
   h+='</div>';
   h+='</div>';
 
   // Final buffer
   h+='<div class="scard" style="margin-bottom:1.25rem;">';
-  h+='<h3>Final project buffer</h3>';
-  h+='<div class="srow"><span>Art</span><span class="'+bc(T.aBufCur)+'"><strong>'+T.aBufCur.toFixed(1)+' h</strong></span></div>';
-  h+='<div class="srow"><span>Animation</span><span class="'+bc(T.nBufCur)+'"><strong>'+T.nBufCur.toFixed(1)+' h</strong></span></div>';
-  h+='<div class="srow" style="border-top:1.5px solid var(--border2);margin-top:4px;padding-top:8px;"><span>Total</span><span class="'+bc(T.finalBuf)+'"><strong>'+T.finalBuf.toFixed(1)+' h</strong></span></div>';
-  if(hasSim)h+='<div class="srow sim"><span>After simulation</span><span class="'+bc(T.finalBufSim)+'"><strong>'+T.finalBufSim.toFixed(1)+' h</strong></span></div>';
+  h+='<h3>Фінальна подушка проєкту</h3>';
+  h+='<div class="srow"><span>Арт</span><span class="'+bc(T.aBufCur)+'"><strong>'+T.aBufCur.toFixed(1)+' h</strong></span></div>';
+  h+='<div class="srow"><span>Анімація</span><span class="'+bc(T.nBufCur)+'"><strong>'+T.nBufCur.toFixed(1)+' h</strong></span></div>';
+  h+='<div class="srow" style="border-top:1.5px solid var(--border2);margin-top:4px;padding-top:8px;"><span>Всього</span><span class="'+bc(T.finalBuf)+'"><strong>'+T.finalBuf.toFixed(1)+' h</strong></span></div>';
+  if(hasSim)h+='<div class="srow sim"><span>Після симуляції</span><span class="'+bc(T.finalBufSim)+'"><strong>'+T.finalBufSim.toFixed(1)+' h</strong></span></div>';
   h+='</div>';
 
   // Legend
@@ -443,22 +446,22 @@ function report(){
 
   // Problems
   h+='<div style="margin-bottom:1.25rem;">';
-  h+='<div class="ctitle" style="margin-bottom:10px;">Problem tasks ('+T.problems.length+')<span style="font-size:11px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;margin-left:8px;">auto-flagged or added manually</span></div>';
+  h+='<div class="ctitle" style="margin-bottom:10px;">Проблемні задачі ('+T.problems.length+')<span style="font-size:11px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;margin-left:8px;">підсвічені авто або додані вручну</span></div>';
   if(T.problems.length){
     h+='<div class="tw"><table><thead><tr>';
-    h+='<th style="width:70px">Key</th><th>Task</th><th style="width:110px">Assignee</th>';
-    h+='<th style="width:70px">Type</th><th style="width:95px">Status</th>';
+    h+='<th style="width:70px">Key</th><th>Задача</th><th style="width:110px">Виконавець</th>';
+    h+='<th style="width:70px">Тип</th><th style="width:95px">Статус</th>';
     h+='<th style="width:68px">Orig h</th><th style="width:88px">Spent h</th>';
-    h+='<th style="width:68px">Rem h</th><th style="width:110px">Flag</th>';
-    h+='<th style="min-width:320px">Comment + simulation</th>';
+    h+='<th style="width:68px">Rem h</th><th style="width:110px">Прапор</th>';
+    h+='<th style="min-width:320px">Коментар + симуляція</th>';
     h+='</tr></thead><tbody>';
     for(var i=0;i<T.problems.length;i++){
       var t=T.problems[i],orig=parseFloat(t.original)||0,spent=parseFloat(t.spent)||0,rem=calcRem(t);
       var sim=getSim(t.key),simRes=applySimToTask(t);
       var fl=flag(orig,spent,rem),rc=rowcls(orig,spent,rem);
-      var mp=S.manualProblems&&S.manualProblems[t.key];
+      var mp=S.вручнуProblems&&S.вручнуProblems[t.key];
       if(mp)rc='ar';
-      var tb=isAnim(t.assignee)?'<span class="tag t-anim">anim</span>':'<span class="tag t-art">art</span>';
+      var tb=isAnim(t.assignee)?'<span class="tag t-anim">анімація</span>':'<span class="tag t-art">арт</span>';
       var cid='c'+t.key.replace(/[^a-z0-9]/gi,'');
       var cv=S.comments[cid]||'';
       var sopts='';
@@ -467,10 +470,13 @@ function report(){
       var simHtml='';
       if(sim.op&&sim.op!=='— не обрано —'&&sim.op!=='Нічого не робити'&&sim.hrs){
         var newBuf=parseFloat((bufLeft+simRes.bufDelta).toFixed(1));
-        simHtml='<div class="sim-result">Rem: <strong>'+simRes.rem+'h</strong> · Buffer: <span class="tag '+(newBuf<0?'t-err':newBuf===0?'t-warn':'t-ok')+'">'+newBuf+' h</span></div>';
+        simHtml='<div class="sim-result">Rem: <strong>'+simRes.rem+'h</strong> · Подушка: <span class="tag '+(newBuf<0?'t-err':newBuf===0?'t-warn':'t-ok')+'">'+newBuf+' h</span></div>';
       }
       var kpi=spent>0&&orig>0?Math.round(orig/spent*100):0;
-      var kTag=spent>0?'<span class="tag '+(kpi>=115?'t-ok':kpi>=100?'t-info':kpi>=80?'t-warn':'t-err')+'">KPI '+kpi+'%</span>':'';
+      var simSpentVal=sim.op&&sim.op!=='— не обрано —'&&sim.op!=='Нічого не робити'&&sim.hrs?(sim.op==='Забрати час в подушку'?spent:spent):spent;
+      var simOrigVal=sim.op&&sim.op!=='— не обрано —'&&sim.op!=='Нічого не робити'&&sim.hrs?(sim.op==='Додати час з подушки'?orig+parseFloat(sim.hrs||0):sim.op==='Забрати час в подушку'?orig-parseFloat(sim.hrs||0):orig):orig;
+      var simKpi=simOrigVal>0&&spent>0?Math.round(simOrigVal/spent*100):kpi;
+      var kTag=spent>0?'<span class="tag '+(kpi>=115?'t-ok':kpi>=100?'t-info':kpi>=80?'t-warn':'t-err')+'">KPI '+kpi+'%</span>'+(simKpi!==kpi?' <span class="tag '+(simKpi>=115?'t-ok':simKpi>=100?'t-info':simKpi>=80?'t-warn':'t-err')+'">'+simKpi+'%</span>':''):'';
       h+='<tr class="'+rc+'">';
       h+='<td style="font-size:12px;color:var(--text2);">'+esc(t.key||'-')+'</td>';
       h+='<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+esc(t.summary)+'">'+esc(t.summary||'-')+'</td>';
@@ -481,46 +487,46 @@ function report(){
       h+='<td>'+pcell(spent,orig)+'</td>';
       h+='<td>'+rem+'</td>';
       h+='<td><span class="tag '+fl.c+'">'+fl.l+'</span>';
-      if(mp)h+='<br><span class="tag t-warn" style="font-size:10px;margin-top:3px;">manual</span>';
+      if(mp)h+='<br><span class="tag t-warn" style="font-size:10px;margin-top:3px;">вручну</span>';
       h+=' '+kTag+'</td>';
       h+='<td style="min-width:320px;">';
-      h+='<textarea class="cmt" placeholder="PM comment..." data-cid="'+cid+'" oninput="S.comments[this.dataset.cid]=this.value;saveAll();">'+esc(cv)+'</textarea>';
+      h+='<textarea class="cmt" placeholder="Коментар ПМа..." data-cid="'+cid+'" oninput="S.comments[this.dataset.cid]=this.value;saveAll();">'+esc(cv)+'</textarea>';
       h+='<div class="sim-panel">';
-      h+='<div class="sim-row"><label>Action:</label>';
+      h+='<div class="sim-row"><label>Дія:</label>';
       h+='<select class="sim-select" data-key="'+t.key+'" onchange="setSim(this.dataset.key,\'op\',this.value)">'+sopts+'</select>';
       h+='<input type="number" class="sim-input" placeholder="h" value="'+(sim.hrs||'')+'" min="0" step="0.5" data-key="'+t.key+'" oninput="setSim(this.dataset.key,\'hrs\',parseFloat(this.value)||0)">';
       h+='</div>'+simHtml+'</div></td></tr>';
     }
     h+='</tbody></table></div>';
-  }else{h+='<div class="empty">No problem tasks!</div>';}
+  }else{h+='<div class="empty">🎉 Проблемних задач немає</div>';}
   h+='</div>';
 
-  // All tasks with KPI column
+  // Всі задачі with KPI column
   if(T.overallKPI>0){
     var okBig=T.overallKPI>=115?'ok':T.overallKPI>=100?'':T.overallKPI>=80?'warn':'danger';
     h+='<div style="display:inline-flex;align-items:center;gap:12px;margin-bottom:12px;background:var(--bg2);border-radius:var(--rl);padding:.75rem 1.25rem;">';
-    h+='<div><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;">Overall project KPI</div>';
+    h+='<div><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;">Загальний KPI проєкту</div>';
     h+='<div style="font-size:26px;font-weight:500;" class="'+okBig+'">'+T.overallKPI+'%';
-    h+='<span style="font-size:12px;font-weight:400;color:var(--text2);margin-left:6px;">'+(T.overallKPI>=115?'Bonus zone':T.overallKPI<100?'Below norm':'')+'</span>';
+    h+='<span style="font-size:12px;font-weight:400;color:var(--text2);margin-left:6px;">'+(T.overallKPI>=115?'Бонусна зона':T.overallKPI<100?'Нижче норми':'')+'</span>';
     h+='</div></div></div>';
   }
-  h+='<div class="ctitle" style="margin-bottom:10px;">All tasks ('+S.tasks.length+')</div>';
+  h+='<div class="ctitle" style="margin-bottom:10px;">Всі задачі ('+S.tasks.length+')</div>';
   if(S.tasks.length){
     h+='<div class="tw"><table><thead><tr>';
-    h+='<th style="width:70px">Key</th><th>Task</th><th style="width:110px">Assignee</th>';
-    h+='<th style="width:70px">Type</th><th style="width:95px">Status</th>';
+    h+='<th style="width:70px">Key</th><th>Задача</th><th style="width:110px">Виконавець</th>';
+    h+='<th style="width:70px">Тип</th><th style="width:95px">Статус</th>';
     h+='<th style="width:68px">Orig h</th><th style="width:88px">Spent h</th>';
-    h+='<th style="width:68px">Rem h</th><th style="width:100px">State</th>';
-    h+='<th style="width:80px">KPI %</th><th style="width:130px">Action</th>';
+    h+='<th style="width:68px">Rem h</th><th style="width:100px">Стан</th>';
+    h+='<th style="width:80px">KPI %</th><th style="width:130px">Дія</th>';
     h+='</tr></thead><tbody>';
     for(var i=0;i<S.tasks.length;i++){
       var t=S.tasks[i],orig=parseFloat(t.original)||0,spent=parseFloat(t.spent)||0,rem=calcRem(t);
       var fl=flag(orig,spent,rem),rc=rowcls(orig,spent,rem);
-      var tb=isAnim(t.assignee)?'<span class="tag t-anim">anim</span>':'<span class="tag t-art">art</span>';
-      var inProb=S.manualProblems&&S.manualProblems[t.key];
+      var tb=isAnim(t.assignee)?'<span class="tag t-anim">анімація</span>':'<span class="tag t-art">арт</span>';
+      var inProb=S.вручнуProblems&&S.вручнуProblems[t.key];
       var addBtn=inProb
-        ?'<span class="tag t-warn" style="font-size:10px;">In problems</span>'
-        :'<button class="btn btn-sm" style="height:26px;padding:0 8px;font-size:11px;background:var(--warn-bg);color:var(--warn);border-color:var(--warn);" data-key="'+t.key+'" onclick="showAddProb(this.dataset.key)">+ Problems</button>';
+        ?'<span class="tag t-warn" style="font-size:10px;">В проблемних</span>'
+        :'<button class="btn btn-sm" style="height:26px;padding:0 8px;font-size:11px;background:var(--warn-bg);color:var(--warn);border-color:var(--warn);" data-key="'+t.key+'" onclick="showAddProb(this.dataset.key)">+ В проблемні</button>';
       h+='<tr class="'+rc+'">';
       h+='<td style="font-size:12px;color:var(--text2);">'+esc(t.key||'-')+'</td>';
       h+='<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+esc(t.summary)+'">'+esc(t.summary||'-')+'</td>';
@@ -536,7 +542,7 @@ function report(){
       h+='</tr>';
     }
     h+='</tbody></table></div>';
-  }else{h+='<div class="empty">No tasks</div>';}
+  }else{h+='<div class="empty">Немає задач</div>';}
 
   document.getElementById('rpt').innerHTML=h;
 }
@@ -546,26 +552,26 @@ function updBuf(el){
   saveAll();report();
 }
 function showAddProb(key){
-  var reasons=['Overestimate - spent more than estimated','Overrun - task will take more than remaining','Delay - task not started on time','Other'];
+  var reasons=['Overestimate — витрачено більше ніж заклали','Вихід за естімацію — задача займе більше ніж залишилось','Затримка — задача не розпочата вчасно','Other'];
   var opts=reasons.map(function(r){return '<option>'+r+'</option>';}).join('');
   var d=document.createElement('div');
   d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;';
   d.id='prob-modal';
   d.innerHTML='<div style="background:var(--bg);border-radius:12px;padding:1.5rem;width:100%;max-width:420px;margin:1rem;">'
-    +'<h2 style="font-size:16px;font-weight:500;margin-bottom:8px;">Add to problem tasks</h2>'
-    +'<p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Task: <strong>'+key+'</strong></p>'
-    +'<label style="font-size:12px;color:var(--text2);">Reason</label>'
+    +'<h2 style="font-size:16px;font-weight:500;margin-bottom:8px;">Додати в проблемні задачі</h2>'
+    +'<p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Задача: <strong>'+key+'</strong></p>'
+    +'<label style="font-size:12px;color:var(--text2);">Причина</label>'
     +'<select id="pr-sel" style="display:block;width:100%;height:36px;margin-top:6px;padding:0 10px;border:.5px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--bg2);color:var(--text);font-family:inherit;">'+opts+'</select>'
     +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:1.25rem;">'
-    +'<button style="height:36px;padding:0 16px;border:.5px solid var(--border2);border-radius:var(--r);background:transparent;color:var(--text);font-size:13px;cursor:pointer;font-family:inherit;" onclick="document.getElementById(\'prob-modal\').remove()">Cancel</button>'
-    +'<button style="height:36px;padding:0 16px;border:.5px solid var(--warn);border-radius:var(--r);background:var(--warn-bg);color:var(--warn);font-size:13px;cursor:pointer;font-family:inherit;" data-key="'+key+'" onclick="doAddProb(this.dataset.key)">Add</button>'
+    +'<button style="height:36px;padding:0 16px;border:.5px solid var(--border2);border-radius:var(--r);background:transparent;color:var(--text);font-size:13px;cursor:pointer;font-family:inherit;" onclick="document.getElementById(\'prob-modal\').remove()">Скасувати</button>'
+    +'<button style="height:36px;padding:0 16px;border:.5px solid var(--warn);border-radius:var(--r);background:var(--warn-bg);color:var(--warn);font-size:13px;cursor:pointer;font-family:inherit;" data-key="'+key+'" onclick="doAddProb(this.dataset.key)">Додати</button>'
     +'</div></div>';
   document.body.appendChild(d);
 }
 function doAddProb(key){
   var reason=document.getElementById('pr-sel').value;
-  if(!S.manualProblems)S.manualProblems={};
-  S.manualProblems[key]=reason;
+  if(!S.вручнуProblems)S.вручнуProblems={};
+  S.вручнуProblems[key]=reason;
   var cid='c'+key.replace(/[^a-z0-9]/gi,'');
   if(!S.comments[cid])S.comments[cid]=reason;
   saveAll();
@@ -583,55 +589,55 @@ function exportExcel(){
 function doExport(T,date){
   var wb=window.XLSX.utils.book_new();
   var sum=[
-    ['PM TIME TRACKER - '+S.pname,'','','','','','Client: '+S.pclient,'Date: '+date],
+    ['PM TIME TRACKER - '+S.pname,'','','','','','Клієнт: '+S.pclient,'Дата: '+date],
     [],['ART'],
-    ['SOW','Real estimate','Buffer initial','Buffer current','Tracked','%','Remaining tasks','Total remaining'],
+    ['SOW','Real estimate','Подушка початкова','Актуальна подушка','Tracked','%','Залишилось в задачах','Залишилось всього'],
     [S.asow,S.areal,T.abuf,T.aBufCur,parseFloat(T.aS.toFixed(1)),T.ap+'%',parseFloat(T.aR.toFixed(1)),parseFloat((T.aR+T.aBufCur).toFixed(1))],
     [],['ANIMATION'],
-    ['SOW','Real estimate','Buffer initial','Buffer current','Tracked','%','Remaining tasks','Total remaining'],
+    ['SOW','Real estimate','Подушка початкова','Актуальна подушка','Tracked','%','Залишилось в задачах','Залишилось всього'],
     [S.nsow,S.nreal,T.nbuf,T.nBufCur,parseFloat(T.nS.toFixed(1)),T.np+'%',parseFloat(T.nR.toFixed(1)),parseFloat((T.nR+T.nBufCur).toFixed(1))],
-    [],['FINAL BUFFER','','','','','','',T.finalBuf+' h']
+    [],['ФІНАЛЬНА ПОДУШКА','','','','','','',T.finalBuf+' h']
   ];
   var ws1=window.XLSX.utils.aoa_to_sheet(sum);
   ws1['!cols']=[{wch:18},{wch:14},{wch:16},{wch:16},{wch:12},{wch:6},{wch:18},{wch:18}];
-  window.XLSX.utils.book_append_sheet(wb,ws1,'Summary');
-  var pRows=[['Key','Task','Assignee','Type','Status','Orig h','Spent h','Rem h','KPI %','Flag','Comment','Action','Hours','Rem after sim']];
+  window.XLSX.utils.book_append_sheet(wb,ws1,'Підсумок');
+  var pRows=[['Key','Task','Виконавець','Type','Status','Orig h','Spent h','Rem h','KPI %','Flag','Comment','Action','Hours','Rem after sim']];
   for(var i=0;i<T.problems.length;i++){
     var t=T.problems[i],orig=parseFloat(t.original)||0,spent=parseFloat(t.spent)||0,rem=calcRem(t);
     var kpi=spent>0&&orig>0?Math.round(orig/spent*100):0;
     var fl=flag(orig,spent,rem);
     var cid='c'+t.key.replace(/[^a-z0-9]/gi,''),cv=S.comments[cid]||'';
     var sim=getSim(t.key),simRes=applySimToTask(t);
-    pRows.push([t.key,t.summary,t.assignee,isAnim(t.assignee)?'anim':'art',t.status,orig,spent,rem,spent>0?kpi+'%':'-',fl.l,cv,sim.op&&sim.op!=='— не обрано —'?sim.op:'',sim.hrs||'',simRes.rem]);
+    pRows.push([t.key,t.summary,t.assignee,isAnim(t.assignee)?'анімація':'арт',t.status,orig,spent,rem,spent>0?kpi+'%':'-',fl.l,cv,sim.op&&sim.op!=='— не обрано —'?sim.op:'',sim.hrs||'',simRes.rem]);
   }
   var ws2=window.XLSX.utils.aoa_to_sheet(pRows);
   ws2['!cols']=[{wch:8},{wch:30},{wch:20},{wch:8},{wch:14},{wch:8},{wch:8},{wch:8},{wch:8},{wch:14},{wch:35},{wch:25},{wch:6},{wch:14}];
-  window.XLSX.utils.book_append_sheet(wb,ws2,'Problem tasks');
-  var aRows=[['Key','Task','Assignee','Type','Status','Orig h','Spent h','Rem h','KPI %','State']];
+  window.XLSX.utils.book_append_sheet(wb,ws2,'Проблемні задачі');
+  var aRows=[['Key','Task','Виконавець','Type','Status','Orig h','Spent h','Rem h','KPI %','State']];
   for(var i=0;i<S.tasks.length;i++){
     var t=S.tasks[i],orig=parseFloat(t.original)||0,spent=parseFloat(t.spent)||0,rem=calcRem(t);
     var kpi=spent>0&&orig>0?Math.round(orig/spent*100):0;
     var fl=flag(orig,spent,rem);
-    aRows.push([t.key,t.summary,t.assignee,isAnim(t.assignee)?'anim':'art',t.status,orig,spent,rem,spent>0?kpi+'%':'-',fl.l]);
+    aRows.push([t.key,t.summary,t.assignee,isAnim(t.assignee)?'анімація':'арт',t.status,orig,spent,rem,spent>0?kpi+'%':'-',fl.l]);
   }
   var ws3=window.XLSX.utils.aoa_to_sheet(aRows);
   ws3['!cols']=[{wch:8},{wch:30},{wch:20},{wch:8},{wch:14},{wch:8},{wch:8},{wch:8},{wch:8},{wch:14}];
-  window.XLSX.utils.book_append_sheet(wb,ws3,'All tasks');
+  window.XLSX.utils.book_append_sheet(wb,ws3,'Всі задачі');
   window.XLSX.writeFile(wb,(S.pkey||'report')+'_'+date.replace(/\./g,'-')+'_tracker.xlsx');
 }
 function copyReport(){
   var T=calcTotals(),lines=[];
-  lines.push('PM Time Report - '+S.pname+(S.pclient?' ('+S.pclient+')':''));
+  lines.push('PM Time Report — '+S.pname+(S.pclient?' ('+S.pclient+')':''));
   lines.push('');lines.push('ART');
-  lines.push('SOW: '+S.asow+' h | Real: '+S.areal+' h | Buffer: '+T.aBufCur.toFixed(1)+' h');
+  lines.push('SOW: '+S.asow+' h | Real: '+S.areal+' h | Подушка: '+T.aBufCur.toFixed(1)+' h');
   lines.push('Tracked: '+T.aS.toFixed(1)+' h ('+T.ap+'%) | Remaining: '+(T.aR+T.aBufCur).toFixed(1)+' h');
   lines.push('');lines.push('ANIMATION');
-  lines.push('SOW: '+S.nsow+' h | Real: '+S.nreal+' h | Buffer: '+T.nBufCur.toFixed(1)+' h');
+  lines.push('SOW: '+S.nsow+' h | Real: '+S.nreal+' h | Подушка: '+T.nBufCur.toFixed(1)+' h');
   lines.push('Tracked: '+T.nS.toFixed(1)+' h ('+T.np+'%) | Remaining: '+(T.nR+T.nBufCur).toFixed(1)+' h');
   lines.push('');lines.push('Final buffer: '+T.finalBuf.toFixed(1)+' h');
-  if(T.overallKPI>0)lines.push('Overall KPI: '+T.overallKPI+'%'+(T.overallKPI>=115?' - Bonus zone':''));
+  if(T.overallKPI>0)lines.push('Загальний KPI: '+T.overallKPI+'%'+(T.overallKPI>=115?' - Бонусна зона':''));
   if(T.problems.length){
-    lines.push('');lines.push('PROBLEM TASKS ('+T.problems.length+')');
+    lines.push('');lines.push('ПРОБЛЕМНІ ЗАДАЧІ ('+T.problems.length+')');
     for(var i=0;i<T.problems.length;i++){
       var t=T.problems[i],orig=parseFloat(t.original)||0,spent=parseFloat(t.spent)||0,rem=calcRem(t);
       var kpi=spent>0&&orig>0?Math.round(orig/spent*100):0;
@@ -640,8 +646,8 @@ function copyReport(){
       var sim=getSim(t.key),simRes=applySimToTask(t);
       lines.push('');lines.push(t.key+' - '+t.summary+' ('+t.assignee+')');
       lines.push('Orig: '+orig+'h | Spent: '+spent+'h | Rem: '+rem+'h | KPI: '+(spent>0?kpi+'%':'-')+' | '+fl.l);
-      if(cv)lines.push('Comment: '+cv);
-      if(sim.op&&sim.op!=='— не обрано —'&&sim.op!=='Нічого не робити'&&sim.hrs)lines.push('Simulation: '+sim.op+' '+sim.hrs+'h -> Rem: '+simRes.rem+'h');
+      if(cv)lines.push('Коментар: '+cv);
+      if(sim.op&&sim.op!=='— не обрано —'&&sim.op!=='Нічого не робити'&&sim.hrs)lines.push('Симуляція: '+sim.op+' '+sim.hrs+'h -> Rem: '+simRes.rem+'h');
     }
   }
   navigator.clipboard.writeText(lines.join('\n')).then(function(){
