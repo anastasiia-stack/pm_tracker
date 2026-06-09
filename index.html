@@ -247,7 +247,7 @@ var S={
 };
 var JC={domain:'',email:'',token:''};
 var ST=['TO DO','IN PROGRESS','ON DELIVERY','ON HOLD','EDITS','EXPORT','DONE'];
-var SIM_OPS=['— не обрано —','Забрати час в подушку','Додати час з подушки'];
+var SIM_OPS=['— не обрано —','Забрати час в подушку','Додати час з подушки','Нічого не робити'];
 
 function loadAll(){
   try{var s=localStorage.getItem('pmt6');if(s)S=JSON.parse(s);}catch(e){}
@@ -464,8 +464,8 @@ function pcell(spent,orig){
 }
 
 function getCurrentBuf(type){
-  if(type==='a'){return S.aBufCurrent>=0?S.aBufCurrent:Math.max(0,parseFloat((S.asow-S.areal).toFixed(1)));}
-  return S.nBufCurrent>=0?S.nBufCurrent:Math.max(0,parseFloat((S.nsow-S.nreal).toFixed(1)));
+  if(type==='a'){return S.aBufCurrent>=-9999?S.aBufCurrent:parseFloat((S.asow-S.areal).toFixed(1));}
+  return S.nBufCurrent>=-9999?S.nBufCurrent:parseFloat((S.nsow-S.nreal).toFixed(1));
 }
 
 function calcTotals(){
@@ -491,13 +491,27 @@ function calcTotals(){
     if(isAnim(t.assignee)){nRemSim+=delta;nBufSim+=res.bufDelta;}
     else{aRemSim+=delta;aBufSim+=res.bufDelta;}
   }
+  // KPI per task: original/spent*100, only tasks with spent>0
+  var taskKPIs=[];
+  var totalOrig=0,totalSpent=0;
+  for(var i=0;i<S.tasks.length;i++){
+    var t=S.tasks[i];
+    var o=parseFloat(t.original)||0,s=parseFloat(t.spent)||0;
+    if(s>0&&o>0){taskKPIs.push({key:t.key,summary:t.summary,assignee:t.assignee,orig:o,spent:s,kpi:Math.round(o/s*100)});}
+    if(o>0&&s>0){totalOrig+=o;totalSpent+=s;}
+  }
+  var overallKPI=totalSpent>0?Math.round(totalOrig/totalSpent*100):0;
+  var finalBuf=parseFloat((aBufCur+nBufCur).toFixed(1));
+  var finalBufSim=parseFloat((aBufSim+nBufSim).toFixed(1));
+
   return{
     abuf:abuf,nbuf:nbuf,aBufCur:aBufCur,nBufCur:nBufCur,
     aS:aS,aR:aR,nS:nS,nR:nR,
     aBufSim:parseFloat(aBufSim.toFixed(1)),nBufSim:parseFloat(nBufSim.toFixed(1)),
     aRemSim:parseFloat(Math.max(0,aRemSim).toFixed(1)),nRemSim:parseFloat(Math.max(0,nRemSim).toFixed(1)),
     ap:S.asow?Math.round(aS/S.asow*100):0,np:S.nsow?Math.round(nS/S.nsow*100):0,
-    problems:problems
+    problems:problems,taskKPIs:taskKPIs,overallKPI:overallKPI,
+    finalBuf:finalBuf,finalBufSim:finalBufSim
   };
 }
 
@@ -532,6 +546,17 @@ function report(){
     +'<div class="srow"><span>Залишилось всього</span><span><strong>'+(T.nR+T.nBufCur).toFixed(1)+' год</strong></span></div>'
     +(hasSim?'<div class="srow sim"><span>📐 Після симуляції</span><span><strong>'+(T.nRemSim+T.nBufSim).toFixed(1)+' год</strong> (подушка: <span class="'+bc(T.nBufSim,T.nbuf)+'">'+T.nBufSim+' год</span>)</span></div>':'')
     +'</div></div>';
+
+  // Final buffer block
+  var fbClass=T.finalBuf<0?'danger':T.finalBuf===0?'warn':'ok';
+  var fbSimClass=T.finalBufSim<0?'danger':T.finalBufSim===0?'warn':'ok';
+  html+='<div class="scard" style="margin-bottom:1.25rem;">'
+    +'<h3>🎯 Фінальна подушка проєкту</h3>'
+    +'<div class="srow"><span>Арт</span><span class="'+(T.aBufCur<0?'danger':T.aBufCur===0?'warn':'ok')+'"><strong>'+T.aBufCur+' год</strong></span></div>'
+    +'<div class="srow"><span>Анімація</span><span class="'+(T.nBufCur<0?'danger':T.nBufCur===0?'warn':'ok')+'"><strong>'+T.nBufCur+' год</strong></span></div>'
+    +'<div class="srow" style="border-top:1.5px solid var(--border2);margin-top:4px;padding-top:8px;"><span>Фінальна подушка</span><span class="'+fbClass+'"><strong>'+T.finalBuf+' год</strong></span></div>'
+    +(hasSim?'<div class="srow sim"><span>📐 Після симуляції</span><span class="'+fbSimClass+'"><strong>'+T.finalBufSim+' год</strong></span></div>':'')
+    +'</div>';
 
   html+='<div class="legend">'
     +'<div class="legend-item"><div class="legend-dot" style="background:var(--err-bg);border:.5px solid var(--err);"></div> Overestimate</div>'
@@ -619,6 +644,47 @@ function report(){
     html+='</tbody></table></div>';
   }else{html+='<div class="empty">Задач немає</div>';}
   html+='</div>';
+  // KPI block
+  html+='<div style="margin-top:1.25rem;">'
+    +'<div class="ctitle" style="margin-bottom:10px;">📈 KPI по задачах'
+    +'<span style="font-size:11px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;margin-left:8px;">— тільки задачі з затрекованим часом · формула: Original / Spent × 100%</span></div>';
+
+  if(T.taskKPIs.length){
+    // Overall KPI
+    var okClass=T.overallKPI>=115?'t-ok':T.overallKPI>=100?'t-info':T.overallKPI>=80?'t-warn':'t-err';
+    html+='<div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;">'
+      +'<div class="scard" style="flex:1;min-width:200px;padding:0.75rem 1rem;">'
+      +'<div style="font-size:12px;color:var(--text2);margin-bottom:4px;">Загальний KPI проєкту</div>'
+      +'<div style="font-size:28px;font-weight:500;" class="'+(T.overallKPI>=115?'ok':T.overallKPI>=100?'':T.overallKPI>=80?'warn':'danger')+'">'+T.overallKPI+'%'
+      +'<span style="font-size:13px;font-weight:400;color:var(--text2);margin-left:8px;">'+(T.overallKPI>=115?'🎉 Бонусна зона':'')+(T.overallKPI<100?' ⚠ Нижче норми':'')+'</span>'
+      +'</div></div></div>';
+
+    html+='<div class="tw"><table><thead><tr>'
+      +'<th style="width:70px">Key</th><th>Задача</th><th style="width:130px">Виконавець</th>'
+      +'<th style="width:80px">Original h</th><th style="width:80px">Spent h</th>'
+      +'<th style="width:90px">KPI %</th><th style="width:120px">Статус KPI</th>'
+      +'</tr></thead><tbody>';
+    for(var i=0;i<T.taskKPIs.length;i++){
+      var k=T.taskKPIs[i];
+      var kClass=k.kpi>=115?'t-ok':k.kpi>=100?'t-info':k.kpi>=80?'t-warn':'t-err';
+      var kLabel=k.kpi>=115?'Бонусна зона':k.kpi>=100?'OK':k.kpi>=80?'At risk':'Нижче норми';
+      var rowBg=k.kpi>=115?'':k.kpi<80?'oe':k.kpi<100?'ar':'';
+      html+='<tr class="'+rowBg+'">'
+        +'<td style="font-size:12px;color:var(--text2);">'+esc(k.key)+'</td>'
+        +'<td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(k.summary)+'</td>'
+        +'<td>'+esc(k.assignee||'—')+'</td>'
+        +'<td>'+k.orig+'</td>'
+        +'<td><strong>'+k.spent+'</strong></td>'
+        +'<td><strong>'+k.kpi+'%</strong></td>'
+        +'<td><span class="tag '+kClass+'">'+kLabel+'</span></td>'
+        +'</tr>';
+    }
+    html+='</tbody></table></div>';
+  }else{
+    html+='<div class="empty">Немає задач з затрекованим часом</div>';
+  }
+  html+='</div>';
+
   document.getElementById('rpt').innerHTML=html;
 }
 
