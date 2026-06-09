@@ -473,10 +473,14 @@ function report(){
         simHtml='<div class="sim-result">Rem: <strong>'+simRes.rem+'h</strong> · Подушка: <span class="tag '+(newBuf<0?'t-err':newBuf===0?'t-warn':'t-ok')+'">'+newBuf+' h</span></div>';
       }
       var kpi=spent>0&&orig>0?Math.round(orig/spent*100):0;
-      var simSpentVal=sim.op&&sim.op!=='— не обрано —'&&sim.op!=='Нічого не робити'&&sim.hrs?(sim.op==='Забрати час в подушку'?spent:spent):spent;
-      var simOrigVal=sim.op&&sim.op!=='— не обрано —'&&sim.op!=='Нічого не робити'&&sim.hrs?(sim.op==='Додати час з подушки'?orig+parseFloat(sim.hrs||0):sim.op==='Забрати час в подушку'?orig-parseFloat(sim.hrs||0):orig):orig;
-      var simKpi=simOrigVal>0&&spent>0?Math.round(simOrigVal/spent*100):kpi;
-      var kTag=spent>0?'<span class="tag '+(kpi>=115?'t-ok':kpi>=100?'t-info':kpi>=80?'t-warn':'t-err')+'">KPI '+kpi+'%</span>'+(simKpi!==kpi?' <span class="tag '+(simKpi>=115?'t-ok':simKpi>=100?'t-info':simKpi>=80?'t-warn':'t-err')+'">'+simKpi+'%</span>':''):'';
+      var simHrs=sim.op&&sim.op!=='— не обрано —'&&sim.op!=='Нічого не робити'?parseFloat(sim.hrs||0):0;
+      var simOrig=orig;
+      if(simHrs>0){
+        if(sim.op==='Додати час з подушки')simOrig=orig+simHrs;
+        else if(sim.op==='Забрати час в подушку')simOrig=Math.max(0,orig-simHrs);
+      }
+      var simKpi=simOrig>0&&spent>0?Math.round(simOrig/spent*100):kpi;
+      var kTag=spent>0?'<span class="tag '+(kpi>=115?'t-ok':kpi>=100?'t-info':kpi>=80?'t-warn':'t-err')+'">KPI '+kpi+'%</span>'+(simKpi!==kpi?' → <span class="tag '+(simKpi>=115?'t-ok':simKpi>=100?'t-info':simKpi>=80?'t-warn':'t-err')+'">'+simKpi+'%</span>':''):'';
       h+='<tr class="'+rc+'">';
       h+='<td style="font-size:12px;color:var(--text2);">'+esc(t.key||'-')+'</td>';
       h+='<td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="'+esc(t.summary)+'">'+esc(t.summary||'-')+'</td>';
