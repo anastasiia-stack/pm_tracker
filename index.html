@@ -498,7 +498,7 @@ function report(){
       h+='<div class="sim-panel">';
       h+='<div class="sim-row"><label>Дія:</label>';
       h+='<select class="sim-select" data-key="'+t.key+'" onchange="setSim(this.dataset.key,\'op\',this.value)">'+sopts+'</select>';
-      h+='<input type="number" class="sim-input" placeholder="h" value="'+(sim.hrs||'')+'" min="0" step="0.5" data-key="'+t.key+'" oninput="setSim(this.dataset.key,\'hrs\',parseFloat(this.value)||0)">';
+      h+='<input type="number" class="sim-input" placeholder="h" value="'+(sim.hrs||'')+'" min="0" step="0.5" data-key="'+t.key+'" onchange="setSim(this.dataset.key,\'hrs\',parseFloat(this.value)||0)">';
       h+='</div>'+simHtml+'</div></td></tr>';
     }
     h+='</tbody></table></div>';
