@@ -481,11 +481,11 @@ function report(){
       var cv=S.comments[cid]||'';
       var sopts='';
       for(var op=0;op<SIM_OPS.length;op++)sopts+='<option value="'+SIM_OPS[op]+'"'+(sim.op===SIM_OPS[op]?' selected':'')+'>'+SIM_OPS[op]+'</option>';
-      var bufLeftTotal=isAnim(t.assignee)?T.nBufSim:T.aBufSim;
-      var bufLeft=parseFloat((bufLeftTotal-simRes.bufDelta).toFixed(1));
+      var bufLeftBase=isAnim(t.assignee)?T.nBufCur:T.aBufCur;
+      var bufLeft=parseFloat((bufLeftBase+simRes.bufDelta).toFixed(1));
       var simHtml='';
       if(sim.op&&sim.op!=='— не обрано —'&&sim.op!=='Нічого не робити'&&sim.hrs){
-        var newBuf=parseFloat((bufLeft+simRes.bufDelta).toFixed(1));
+        var newBuf=bufLeft;
         simHtml='<div class="sim-result">Rem: <strong>'+simRes.rem+'h</strong> · Подушка: <span class="tag '+(newBuf<0?'t-err':newBuf===0?'t-warn':'t-ok')+'">'+newBuf+' h</span></div>';
       }
       var kpi=spent>0&&orig>0?Math.round(orig/spent*100):0;
