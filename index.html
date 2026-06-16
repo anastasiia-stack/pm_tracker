@@ -403,7 +403,13 @@ function calcTotals(){
   }
   var overallKPI=totalSpent>0?Math.round(totalOrig/totalSpent*100):0;
   var finalBuf=parseFloat((aBufCur+nBufCur).toFixed(1)),finalBufSim=parseFloat((aBufSim+nBufSim).toFixed(1));
+  var aRemTasks=parseFloat((S.areal-aS).toFixed(1)),nRemTasks=parseFloat((S.nreal-nS).toFixed(1));
+  var aRemTotal=parseFloat((S.asow-aS).toFixed(1)),nRemTotal=parseFloat((S.nsow-nS).toFixed(1));
+  var aRemTasksSim=parseFloat((aRemTasks+(aRemSim-aR)).toFixed(1)),nRemTasksSim=parseFloat((nRemTasks+(nRemSim-nR)).toFixed(1));
+  var aRemTotalSim=parseFloat((aRemTasksSim+aBufSim).toFixed(1)),nRemTotalSim=parseFloat((nRemTasksSim+nBufSim).toFixed(1));
   return{abuf:abuf,nbuf:nbuf,aBufCur:aBufCur,nBufCur:nBufCur,aS:aS,aR:aR,nS:nS,nR:nR,
+    aRemTasks:aRemTasks,nRemTasks:nRemTasks,aRemTotal:aRemTotal,nRemTotal:nRemTotal,
+    aRemTasksSim:aRemTasksSim,nRemTasksSim:nRemTasksSim,aRemTotalSim:aRemTotalSim,nRemTotalSim:nRemTotalSim,
     aBufSim:parseFloat(aBufSim.toFixed(1)),nBufSim:parseFloat(nBufSim.toFixed(1)),
     aRemSim:parseFloat(aRemSim.toFixed(1)),nRemSim:parseFloat(nRemSim.toFixed(1)),
     ap:S.asow?Math.round(aS/S.asow*100):0,np:S.nsow?Math.round(nS/S.nsow*100):0,
@@ -425,9 +431,9 @@ function report(){
   h+='<div class="srow"><span>Подушка початкова</span><span class="'+bc(T.abuf)+'">'+T.abuf+' h</span></div>';
   h+='<div class="srow buf-edit"><span>Актуальна подушка (цей тиждень)</span><input type="number" class="buf-input" value="'+T.aBufCur.toFixed(1)+'" step="0.5" data-t="a" onchange="updBuf(this)"></div>';
   h+='<div class="srow"><span>Затрековано</span><span class="'+cc(T.ap)+'">'+T.aS.toFixed(1)+' h ('+T.ap+'%)</span></div>';
-  h+='<div class="srow"><span>Залишилось в задачах</span><span>'+T.aR.toFixed(1)+' h</span></div>';
-  h+='<div class="srow"><span>Залишилось всього</span><span class="'+bc(T.aR+T.aBufCur)+'"><strong>'+(T.aR+T.aBufCur).toFixed(1)+' h</strong></span></div>';
-  if(hasSim)h+='<div class="srow sim"><span>Після симуляції</span><span class="'+bc(T.aBufSim)+'"><strong>'+(T.aRemSim+T.aBufSim).toFixed(1)+' h</strong> (buf: '+T.aBufSim.toFixed(1)+' h)</span></div>';
+  h+='<div class="srow"><span>Залишилось в задачах</span><span>'+T.aRemTasks.toFixed(1)+' h</span></div>';
+  h+='<div class="srow"><span>Залишилось всього</span><span class="'+bc(T.aRemTotal)+'"><strong>'+T.aRemTotal.toFixed(1)+' h</strong></span></div>';
+  if(hasSim)h+='<div class="srow sim"><span>Після симуляції</span><span class="'+bc(T.aRemTotalSim)+'"><strong>'+T.aRemTotalSim.toFixed(1)+' h</strong> (buf: '+T.aBufSim.toFixed(1)+' h)</span></div>';
   h+='</div>';
 
   h+='<div class="scard"><h3>Анімація</h3>';
@@ -436,9 +442,9 @@ function report(){
   h+='<div class="srow"><span>Подушка початкова</span><span class="'+bc(T.nbuf)+'">'+T.nbuf+' h</span></div>';
   h+='<div class="srow buf-edit"><span>Актуальна подушка (цей тиждень)</span><input type="number" class="buf-input" value="'+T.nBufCur.toFixed(1)+'" step="0.5" data-t="n" onchange="updBuf(this)"></div>';
   h+='<div class="srow"><span>Затрековано</span><span class="'+cc(T.np)+'">'+T.nS.toFixed(1)+' h ('+T.np+'%)</span></div>';
-  h+='<div class="srow"><span>Залишилось в задачах</span><span>'+T.nR.toFixed(1)+' h</span></div>';
-  h+='<div class="srow"><span>Залишилось всього</span><span class="'+bc(T.nR+T.nBufCur)+'"><strong>'+(T.nR+T.nBufCur).toFixed(1)+' h</strong></span></div>';
-  if(hasSim)h+='<div class="srow sim"><span>Після симуляції</span><span class="'+bc(T.nBufSim)+'"><strong>'+(T.nRemSim+T.nBufSim).toFixed(1)+' h</strong> (buf: '+T.nBufSim.toFixed(1)+' h)</span></div>';
+  h+='<div class="srow"><span>Залишилось в задачах</span><span>'+T.nRemTasks.toFixed(1)+' h</span></div>';
+  h+='<div class="srow"><span>Залишилось всього</span><span class="'+bc(T.nRemTotal)+'"><strong>'+T.nRemTotal.toFixed(1)+' h</strong></span></div>';
+  if(hasSim)h+='<div class="srow sim"><span>Після симуляції</span><span class="'+bc(T.nRemTotalSim)+'"><strong>'+T.nRemTotalSim.toFixed(1)+' h</strong> (buf: '+T.nBufSim.toFixed(1)+' h)</span></div>';
   h+='</div>';
   h+='</div>';
 
@@ -615,10 +621,10 @@ function doExport(T,date){
     ['PM TIME TRACKER - '+S.pname,'','','','','','Клієнт: '+S.pclient,'Дата: '+date],
     [],['ART'],
     ['SOW','Real estimate','Подушка початкова','Актуальна подушка','Tracked','%','Залишилось в задачах','Залишилось всього'],
-    [S.asow,S.areal,T.abuf,T.aBufCur,parseFloat(T.aS.toFixed(1)),T.ap+'%',parseFloat(T.aR.toFixed(1)),parseFloat((T.aR+T.aBufCur).toFixed(1))],
+    [S.asow,S.areal,T.abuf,T.aBufCur,parseFloat(T.aS.toFixed(1)),T.ap+'%',parseFloat(T.aRemTasks.toFixed(1)),parseFloat(T.aRemTotal.toFixed(1))],
     [],['ANIMATION'],
     ['SOW','Real estimate','Подушка початкова','Актуальна подушка','Tracked','%','Залишилось в задачах','Залишилось всього'],
-    [S.nsow,S.nreal,T.nbuf,T.nBufCur,parseFloat(T.nS.toFixed(1)),T.np+'%',parseFloat(T.nR.toFixed(1)),parseFloat((T.nR+T.nBufCur).toFixed(1))],
+    [S.nsow,S.nreal,T.nbuf,T.nBufCur,parseFloat(T.nS.toFixed(1)),T.np+'%',parseFloat(T.nRemTasks.toFixed(1)),parseFloat(T.nRemTotal.toFixed(1))],
     [],['ФІНАЛЬНА ПОДУШКА','','','','','','',T.finalBuf+' h']
   ];
   var ws1=window.XLSX.utils.aoa_to_sheet(sum);
@@ -653,10 +659,10 @@ function copyReport(){
   lines.push('PM Time Report — '+S.pname+(S.pclient?' ('+S.pclient+')':''));
   lines.push('');lines.push('ART');
   lines.push('SOW: '+S.asow+' h | Real: '+S.areal+' h | Подушка: '+T.aBufCur.toFixed(1)+' h');
-  lines.push('Tracked: '+T.aS.toFixed(1)+' h ('+T.ap+'%) | Remaining: '+(T.aR+T.aBufCur).toFixed(1)+' h');
+  lines.push('Tracked: '+T.aS.toFixed(1)+' h ('+T.ap+'%) | Remaining: '+T.aRemTotal.toFixed(1)+' h');
   lines.push('');lines.push('ANIMATION');
   lines.push('SOW: '+S.nsow+' h | Real: '+S.nreal+' h | Подушка: '+T.nBufCur.toFixed(1)+' h');
-  lines.push('Tracked: '+T.nS.toFixed(1)+' h ('+T.np+'%) | Remaining: '+(T.nR+T.nBufCur).toFixed(1)+' h');
+  lines.push('Tracked: '+T.nS.toFixed(1)+' h ('+T.np+'%) | Remaining: '+T.nRemTotal.toFixed(1)+' h');
   lines.push('');lines.push('Final buffer: '+T.finalBuf.toFixed(1)+' h');
   if(T.overallKPI>0)lines.push('Загальний KPI: '+T.overallKPI+'%'+(T.overallKPI>=115?' - Бонусна зона':''));
   if(T.problems.length){
