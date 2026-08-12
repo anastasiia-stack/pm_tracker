@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PM Time Tracker</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+:root{--bg:#fff;--bg2:#f5f5f3;--bg3:#eeede9;--text:#1a1a19;--text2:#6b6b68;--text3:#a0a09c;--border:rgba(0,0,0,0.12);--border2:rgba(0,0,0,0.22);--ok:#1d9e75;--warn:#ba7517;--err:#a32d2d;--ok-bg:#eaf3de;--warn-bg:#faeeda;--err-bg:#fcebeb;--info:#185fa5;--info-bg:#e6f1fb;--nt:#6b6b68;--nt-bg:#eeede9;--r:8px;--rl:12px;}
+@media(prefers-color-scheme:dark){:root{--bg:#1e1e1c;--bg2:#2a2a28;--bg3:#333330;--text:#f0f0ec;--text2:#a0a09c;--text3:#6b6b68;--border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.18);--ok:#5dcaa5;--warn:#ef9f27;--err:#f09595;--ok-bg:#085041;--warn-bg:#633806;--err-bg:#791f1f;--info:#85b7eb;--info-bg:#0c447c;--nt:#a0a09c;--nt-bg:#2a2a28;}}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;font-size:14px;line-height:1.6;}
+.page{max-width:1100px;margin:0 auto;padding:2rem 1.5rem;}
+h1{font-size:20px;font-weight:500;}.sub{font-size:13px;color:var(--text2);margin-top:2px;}
+.header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:1.75rem;}
+.badge{font-size:13px;font-weight:500;background:var(--info-bg);color:var(--info);padding:4px 12px;border-radius:999px;display:none;}
+.tabs{display:flex;gap:4px;margin-bottom:1.25rem;}
+.tab{padding:6px 14px;border-radius:var(--r);font-size:13px;cursor:pointer;border:0.5px solid transparent;color:var(--text2);background:transparent;font-family:inherit;}
+.tab.on{background:var(--bg);border-color:var(--border2);color:var(--text);font-weight:500;}
+.tab:hover:not(.on){background:var(--bg2);}
+.pane{display:none;}.pane.on{display:block;}
+.card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--rl);padding:1.25rem;margin-bottom:1.25rem;}
+.ctitle{font-size:12px;font-weight:500;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:1rem;}
+.row{display:flex;gap:12px;flex-wrap:wrap;}
+.f{display:flex;flex-direction:column;gap:5px;flex:1;min-width:130px;}
+.f label{font-size:12px;color:var(--text2);}
+.f input{height:36px;padding:0 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--bg2);color:var(--text);width:100%;font-family:inherit;}
+.f input:focus{outline:none;border-color:var(--info);}
+.f input[readonly]{opacity:.55;cursor:default;}
+.hint{font-size:12px;color:var(--text3);margin-top:6px;}
+.btn{height:36px;padding:0 16px;border:0.5px solid var(--border2);border-radius:var(--r);background:var(--text);color:var(--bg);font-size:13px;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;}
+.btn:hover{opacity:.85;}.btn:active{transform:scale(.98);}.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-o{background:transparent;color:var(--text);}.btn-o:hover{background:var(--bg2);}
+.btn-sm{height:30px;padding:0 12px;font-size:12px;}
+.btn-jira{background:var(--info-bg);color:var(--info);border-color:var(--info);}
+.btn-ok{background:var(--ok-bg);color:var(--ok);border-color:var(--ok);}
+.btn-export{background:var(--ok);color:#fff;border-color:var(--ok);}
+.btn-reset{background:var(--err-bg);color:var(--err);border-color:var(--err);}
+.saved{font-size:11px;color:var(--ok);display:none;margin-left:8px;}
+.err-msg{background:var(--err-bg);color:var(--err);border-radius:var(--r);padding:10px 14px;font-size:13px;margin-bottom:1rem;}
+.sum2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:1.25rem;}
+@media(max-width:600px){.sum2{grid-template-columns:1fr;}}
+.scard{background:var(--bg2);border-radius:var(--rl);padding:1rem 1.25rem;}
+.scard h3{font-size:13px;font-weight:500;margin-bottom:12px;}
+.srow{display:flex;justify-content:space-between;padding:5px 0;border-bottom:.5px solid var(--border);font-size:13px;align-items:center;}
+.srow:last-child{border-bottom:none;font-weight:500;}
+.srow span:first-child{color:var(--text2);}
+.srow.sim{background:rgba(24,95,165,0.06);border-radius:4px;padding:5px 8px;margin:2px -8px;}
+.srow.buf-edit{background:var(--warn-bg);border-radius:var(--r);padding:6px 10px;margin:4px -10px;}
+.buf-input{height:28px;padding:0 8px;border:0.5px solid var(--warn);border-radius:var(--r);font-size:13px;background:var(--bg);color:var(--text);font-family:inherit;width:80px;text-align:right;}
+.buf-input:focus{outline:none;}
+.ok{color:var(--ok);}.warn{color:var(--warn);}.danger{color:var(--err);}
+.tw{overflow-x:auto;border:.5px solid var(--border);border-radius:var(--rl);background:var(--bg);margin-bottom:1.25rem;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:9px 12px;font-size:11px;font-weight:500;color:var(--text2);border-bottom:.5px solid var(--border);background:var(--bg2);text-transform:uppercase;letter-spacing:.03em;white-space:nowrap;}
+td{padding:8px 12px;border-bottom:.5px solid var(--border);color:var(--text);vertical-align:top;}
+tr:last-child td{border-bottom:none;}
+tr.oe>td{background:var(--err-bg);}tr.ar>td{background:var(--warn-bg);}tr.nt>td{background:var(--nt-bg);opacity:.75;}
+.tag{display:inline-flex;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:500;white-space:nowrap;}
+.t-err{background:var(--err-bg);color:var(--err);}.t-warn{background:var(--warn-bg);color:var(--warn);}
+.t-ok{background:var(--ok-bg);color:var(--ok);}.t-info{background:var(--info-bg);color:var(--info);}
+.t-n{background:var(--bg2);color:var(--text2);}.t-nt{background:var(--nt-bg);color:var(--nt);}
+.t-art{background:#e1f5ee;color:#0f6e56;}.t-anim{background:#eeedfe;color:#3c3489;}
+@media(prefers-color-scheme:dark){.t-art{background:#085041;color:#5dcaa5;}.t-anim{background:#26215c;color:#afa9ec;}}
+.pb{height:5px;border-radius:3px;background:var(--bg3);overflow:hidden;flex:1;min-width:40px;}
+.pf{height:100%;border-radius:3px;}.pw{display:flex;align-items:center;gap:6px;margin-top:3px;}
+.pl{font-size:11px;color:var(--text2);min-width:28px;text-align:right;}
+.tr{display:grid;grid-template-columns:72px 1fr 140px 105px 78px 83px 83px 32px;gap:6px;align-items:center;margin-bottom:6px;}
+.tr input,.tr select{height:32px;padding:0 8px;border:.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg2);color:var(--text);font-family:inherit;width:100%;}
+.tr input:focus,.tr select:focus{outline:none;border-color:var(--info);}
+.th{display:grid;grid-template-columns:72px 1fr 140px 105px 78px 83px 83px 32px;gap:6px;margin-bottom:4px;}
+.th span{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.03em;}
+.xbtn{height:32px;width:32px;border:.5px solid var(--border);border-radius:var(--r);background:transparent;color:var(--text3);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.xbtn:hover{background:var(--err-bg);color:var(--err);border-color:var(--err);}
+.cmt{width:100%;min-height:48px;padding:6px 8px;border:.5px solid var(--border2);border-radius:var(--r);font-size:12px;background:var(--bg);color:var(--text);font-family:inherit;resize:vertical;line-height:1.4;}
+.cmt:focus{outline:none;border-color:var(--info);}
+.empty{text-align:center;padding:1.5rem;color:var(--text2);font-size:13px;}
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:100;align-items:center;justify-content:center;}
+.modal.on{display:flex;}
+.mbox{background:var(--bg);border-radius:var(--rl);padding:1.5rem;width:100%;max-width:460px;margin:1rem;}
+.mbox h2{font-size:16px;font-weight:500;margin-bottom:4px;}
+.mbox p{font-size:13px;color:var(--text2);margin-bottom:1.25rem;}
+.mact{display:flex;gap:10px;justify-content:flex-end;margin-top:1.25rem;}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.spin{display:inline-block;animation:spin .8s linear infinite;}
+.sim-panel{background:var(--info-bg);border:.5px solid var(--info);border-radius:var(--r);padding:10px 12px;margin-top:8px;display:flex;flex-direction:column;gap:8px;}
+.sim-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.sim-row label{font-size:12px;color:var(--info);min-width:50px;}
+.sim-select{height:30px;padding:0 8px;border:.5px solid var(--info);border-radius:var(--r);font-size:12px;background:var(--bg);color:var(--text);font-family:inherit;}
+.sim-input{height:30px;padding:0 8px;border:.5px solid var(--info);border-radius:var(--r);font-size:12px;background:var(--bg);color:var(--text);font-family:inherit;width:80px;}
+.sim-result{font-size:12px;color:var(--info);font-weight:500;}
+.export-bar{display:flex;gap:10px;align-items:center;margin-bottom:1.25rem;flex-wrap:wrap;}
+.copy-ok{font-size:12px;color:var(--ok);display:none;}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:12px;color:var(--text2);}
+.legend-item{display:flex;align-items:center;gap:5px;}
+.legend-dot{width:12px;height:12px;border-radius:3px;}
+</style>
+</head>
+<body>
+<div class="modal" id="jmodal">
+  <div class="mbox">
+    <h2>Підтягнути з Jira</h2>
+    <p>Введи дані один раз — збережуться в браузері</p>
+    <div id="jerr"></div>
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="f"><label>Jira domain</label><input id="jd" placeholder="yourcompany.atlassian.net"/></div>
+      <div class="f"><label>Email</label><input id="je" placeholder="you@company.com"/></div>
+      <div class="f"><label>API token</label><input id="jt" type="password" placeholder="your token"/></div>
+    </div>
+    <p class="hint" style="margin-top:8px;">Jira → Profile → Security → API tokens</p>
+    <div class="mact">
+      <button class="btn btn-o" onclick="closeModal()">Скасувати</button>
+      <button class="btn btn-jira" id="jbtn" onclick="fetchJira()">Завантажити задачі</button>
+    </div>
+  </div>
+</div>
+<div class="modal" id="resetmodal">
+  <div class="mbox">
+    <h2>Новий проект</h2>
+    <p>Всі дані поточного проекту будуть видалені. Продовжити?</p>
+    <div class="mact">
+      <button class="btn btn-o" onclick="document.getElementById('resetmodal').classList.remove('on')">Скасувати</button>
+      <button class="btn btn-reset" onclick="doReset()">Очистити і почати новий</button>
+    </div>
+  </div>
+</div>
+<div class="page">
+  <div class="header">
+    <div><h1>PM Time Tracker</h1><p class="sub">Тайм менеджмент — підрахунок подушки, проблемні задачі, симуляція</p></div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <span class="badge" id="pbadge"></span>
+      <button class="btn btn-reset btn-sm" onclick="document.getElementById('resetmodal').classList.add('on')">+ Новий проект</button>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab on" onclick="go('setup')">Налаштування</button>
+    <button class="tab" onclick="go('tasks')">Задачі</button>
+    <button class="tab" onclick="go('report')">Звіт</button>
+  </div>
+  <div class="pane on" id="pane-setup">
+    <div class="card">
+      <div class="ctitle">Проект</div>
+      <div class="row">
+        <div class="f"><label>Назва проекту</label><input id="pname" placeholder="Hot Offer 3" oninput="save()"/></div>
+        <div class="f" style="max-width:140px"><label>Jira key</label><input id="pkey" placeholder="HO3" oninput="save()"/></div>
+        <div class="f" style="max-width:180px"><label>Клієнт</label><input id="pclient" placeholder="Bang Bang Games" oninput="save()"/></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Арт — estimate</div>
+      <div class="row">
+        <div class="f"><label>SOW estimate, год (естімація згідно калькулятора)</label><input type="number" id="asow" placeholder="257" min="0" oninput="save();calcbuf('a')"/></div>
+        <div class="f"><label>Real estimate (для команди), год</label><input type="number" id="areal" placeholder="239.5" min="0" step="0.5" oninput="save();calcbuf('a')"/></div>
+        <div class="f" style="max-width:170px"><label>Подушка початкова (авто), год</label><input type="number" id="abuf" readonly/></div>
+      </div>
+      <p class="hint">Подушка = SOW − Real estimate. Актуальну подушку оновлюй щотижня у Звіті.</p>
+    </div>
+    <div class="card">
+      <div class="ctitle">Анімація — estimate</div>
+      <div class="row">
+        <div class="f"><label>SOW estimate, год (естімація згідно калькулятора)</label><input type="number" id="nsow" placeholder="115" min="0" oninput="save();calcbuf('n')"/></div>
+        <div class="f"><label>Real estimate (для команди), год</label><input type="number" id="nreal" placeholder="115" min="0" step="0.5" oninput="save();calcbuf('n')"/></div>
+        <div class="f" style="max-width:170px"><label>Подушка початкова (авто), год</label><input type="number" id="nbuf" readonly/></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="ctitle">Аніматори</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:10px;">Задачі цих людей → анімація. Решта → арт.</p>
+      <div id="alist"></div>
+      <button class="btn btn-o btn-sm" style="margin-top:8px" onclick="addAnim()">+ Додати аніматора</button>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <button class="btn" onclick="go('tasks')">До задач →</button>
+      <span class="saved" id="sv">Збережено</span>
+    </div>
+  </div>
+  <div class="pane" id="pane-tasks">
+    <div class="card">
+      <div class="ctitle">Задачі проекту</div>
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
+        <button class="btn btn-jira" onclick="openModal()">Підтягнути з Jira</button>
+        <span style="font-size:12px;color:var(--text2);">або додай вручну нижче</span>
+      </div>
+      <div id="jstatus"></div>
+      <div class="th"><span>Key</span><span>Назва</span><span>Виконавець</span><span>Статус</span><span>Original</span><span>Spent</span><span>Remaining</span><span></span></div>
+      <div id="tlist"></div>
+      <button class="btn btn-o btn-sm" style="margin-top:8px" onclick="addTask()">+ Додати вручну</button>
+    </div>
+    <div style="display:flex;gap:10px;">
+      <button class="btn btn-o" onclick="go('setup')">← Налаштування</button>
+      <button class="btn" onclick="go('report')">Переглянути звіт →</button>
+    </div>
+  </div>
+  <div class="pane" id="pane-report">
+    <div class="export-bar">
+      <button class="btn btn-export" onclick="exportExcel()">↓ Експорт в Excel</button>
+      <button class="btn btn-ok" onclick="copyReport()">⎘ Копіювати звіт</button>
+      <span class="copy-ok" id="copy-ok">Скопійовано!</span>
+    </div>
+    <div id="rpt"></div>
+    <div style="margin-top:1rem;"><button class="btn btn-o" onclick="go('tasks')">← Назад до задач</button></div>
+  </div>
+</div>
+<script>
+var S={pname:'',pkey:'',pclient:'',asow:0,areal:0,abuf:0,nsow:0,nreal:0,nbuf:0,aBufCurrent:-99999,nBufCurrent:-99999,anims:[],tasks:[],comments:{},simActions:{},manualProblems:{},excludedProblems:{}};
+var JC={domain:'',email:'',token:''};
+var ST=['TO DO','IN PROGRESS','ON DELIVERY','ON HOLD','EDITS','EXPORT','DONE'];
+var SIM_OPS=['— не обрано —','Забрати час в подушку','Додати час з подушки','Нічого не робити'];
+
+function loadAll(){
+  try{var s=localStorage.getItem('pmt8');if(s){var p=JSON.parse(s);if(!p.manualProblems)p.manualProblems={};if(!p.excludedProblems)p.excludedProblems={};S=p;}}catch(e){}
+  try{var j=localStorage.getItem('pmtj');if(j)JC=JSON.parse(j);}catch(e){}
+  renderAll();
+}
+function saveAll(){try{localStorage.setItem('pmt8',JSON.stringify(S));}catch(e){}}
+function save(){
+  S.pname=document.getElementById('pname').value;
+  S.pkey=document.getElementById('pkey').value;
+  S.pclient=document.getElementById('pclient').value;
+  S.asow=parseFloat(document.getElementById('asow').value)||0;
+  S.areal=parseFloat(document.getElementById('areal').value)||0;
+  S.nsow=parseFloat(document.getElementById('nsow').value)||0;
+  S.nreal=parseFloat(document.getElementById('nreal').value)||0;
+  S.abuf=parseFloat((S.asow-S.areal).toFixed(1));
+  S.nbuf=parseFloat((S.nsow-S.nreal).toFixed(1));
+  saveAll();badge();showsv();
+}
+function calcbuf(t){
+  if(t==='a'){var sv=parseFloat(document.getElementById('asow').value)||0,rv=parseFloat(document.getElementById('areal').value)||0;document.getElementById('abuf').value=parseFloat((sv-rv).toFixed(1))||'';}
+  else{var sv=parseFloat(document.getElementById('nsow').value)||0,rv=parseFloat(document.getElementById('nreal').value)||0;document.getElementById('nbuf').value=parseFloat((sv-rv).toFixed(1))||'';}
+}
+function showsv(){var el=document.getElementById('sv');el.style.display='inline';clearTimeout(window._svt);window._svt=setTimeout(function(){el.style.display='none';},1800);}
+function badge(){var b=document.getElementById('pbadge'),k=S.pkey||S.pname;if(k){b.textContent=k;b.style.display='inline-flex';}else b.style.display='none';}
+function go(n){
+  document.querySelectorAll('.pane').forEach(function(el){el.classList.remove('on');});
+  document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('on');});
+  document.getElementById('pane-'+n).classList.add('on');
+  document.querySelectorAll('.tab')[['setup','tasks','report'].indexOf(n)].classList.add('on');
+  if(n==='report')report();
+}
+function doReset(){
+  S={pname:'',pkey:'',pclient:'',asow:0,areal:0,abuf:0,nsow:0,nreal:0,nbuf:0,aBufCurrent:-99999,nBufCurrent:-99999,anims:[],tasks:[],comments:{},simActions:{},manualProblems:{},excludedProblems:{}};
+  saveAll();renderAll();document.getElementById('resetmodal').classList.remove('on');go('setup');
+}
+function renderAnims(){
+  var h='';
+  for(var i=0;i<S.anims.length;i++){
+    h+='<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;">'
+     +'<input type="text" value="'+esc(S.anims[i])+'" placeholder="Назва" style="height:32px;padding:0 8px;border:.5px solid var(--border2);border-radius:var(--r);font-size:13px;background:var(--bg2);color:var(--text);font-family:inherit;flex:1;" data-ai="'+i+'" oninput="S.anims[this.dataset.ai]=this.value;saveAll();">'
+     +'<button class="xbtn" data-ai="'+i+'" onclick="S.anims.splice(+this.dataset.ai,1);saveAll();renderAnims();">x</button>'
+     +'</div>';
+  }
+  document.getElementById('alist').innerHTML=h;
+}
+function addAnim(){S.anims.push('');saveAll();renderAnims();var ins=document.querySelectorAll('#alist input');if(ins.length)ins[ins.length-1].focus();}
+function isAnim(name){
+  if(!name)return false;var n=name.trim().toLowerCase();
+  for(var i=0;i<S.anims.length;i++){if(S.anims[i]&&S.anims[i].trim().toLowerCase()===n)return true;}
+  return false;
+}
+function calcRem(t){return parseFloat(((parseFloat(t.original)||0)-(parseFloat(t.spent)||0)).toFixed(1));}
+function renderTasks(){
+  var list=document.getElementById('tlist');
+  if(!S.tasks.length){list.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0;">Немає задач.</div>';return;}
+  var h='';
+  for(var i=0;i<S.tasks.length;i++){
+    var t=S.tasks[i],rem=calcRem(t),sopts='';
+    for(var s=0;s<ST.length;s++)sopts+='<option value="'+ST[s]+'"'+(t.status===ST[s]?' selected':'')+'>'+ST[s]+'</option>';
+    h+='<div class="tr" id="tr'+i+'">'
+     +'<input type="text" value="'+esc(t.key||'')+'" placeholder="HO3-1" data-i="'+i+'" data-f="key" oninput="updTask(this)">'
+     +'<input type="text" value="'+esc(t.summary||'')+'" placeholder="Назва задачі" data-i="'+i+'" data-f="summary" oninput="updTask(this)">'
+     +'<input type="text" value="'+esc(t.assignee||'')+'" placeholder="Виконавець" data-i="'+i+'" data-f="assignee" oninput="updTask(this)">'
+     +'<select data-i="'+i+'" onchange="S.tasks[+this.dataset.i].status=this.value;saveAll();">'+sopts+'</select>'
+     +'<input type="number" value="'+(t.original||'')+'" placeholder="0" min="0" step="0.5" data-i="'+i+'" data-f="original" oninput="updTaskNum(this)">'
+     +'<input type="number" value="'+(t.spent||'')+'" placeholder="0" min="0" step="0.5" data-i="'+i+'" data-f="spent" oninput="updTaskNum(this)">'
+     +'<input type="number" value="'+rem+'" placeholder="auto" readonly>'
+     +'<button class="xbtn" data-i="'+i+'" onclick="S.tasks.splice(+this.dataset.i,1);saveAll();renderTasks();">x</button>'
+     +'</div>';
+  }
+  list.innerHTML=h;
+}
+function updTask(el){S.tasks[+el.dataset.i][el.dataset.f]=el.value;saveAll();}
+function updTaskNum(el){S.tasks[+el.dataset.i][el.dataset.f]=parseFloat(el.value)||0;saveAll();}
+function addTask(){S.tasks.push({key:'',summary:'',assignee:'',status:'TO DO',original:0,spent:0,_j:false});saveAll();renderTasks();var rows=document.querySelectorAll('#tlist .tr');if(rows.length){var inp=rows[rows.length-1].querySelector('input');if(inp)inp.focus();}}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function openModal(){document.getElementById('jd').value=JC.domain||'';document.getElementById('je').value=JC.email||'';document.getElementById('jt').value=JC.token||'';document.getElementById('jerr').innerHTML='';document.getElementById('jmodal').classList.add('on');}
+function closeModal(){document.getElementById('jmodal').classList.remove('on');}
+function fetchJira(){
+  var domain=document.getElementById('jd').value.trim().split('://').pop().replace(/\/$/,'');
+  var email=document.getElementById('je').value.trim();
+  var token=document.getElementById('jt').value.trim();
+  var key=S.pkey.trim().toUpperCase();
+  var errEl=document.getElementById('jerr');errEl.innerHTML='';
+  if(!domain||!email||!token){errEl.innerHTML='<div class="err-msg">Fill all fields.</div>';return;}
+  if(!key){errEl.innerHTML='<div class="err-msg">Enter Jira key in Settings.</div>';return;}
+  var btn=document.getElementById('jbtn');btn.disabled=true;btn.textContent='Завантажую...';
+  var auth=btoa(email+':'+token);
+  var jiraUrl='https://'+domain+'/rest/api/3/search/jql?jql=project="'+key+'" ORDER BY key ASC&fields=summary,status,assignee,timetracking&maxResults=100';
+  var url='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(jiraUrl);
+  fetch(url,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
+    .then(function(r){
+      if(r.status===401)throw new Error('Невірний email або токен.');
+      if(r.status===403)throw new Error('Немає доступу до проекту.');
+      if(r.status===400)throw new Error('Невірний project key.');
+      if(!r.ok)throw new Error('Jira error '+r.status+'.');
+      return r.json();
+    })
+    .then(function(data){
+      var issues=data.issues||[];
+      if(!issues.length)throw new Error('Задач не знайдено в проекті '+key+'.');
+      JC={domain:domain,email:email,token:token};
+      try{localStorage.setItem('pmtj',JSON.stringify(JC));}catch(e){}
+      var jkeys={};
+      var newTasks=issues.map(function(iss){
+        jkeys[iss.key]=true;
+        var tt=iss.fields.timetracking||{};
+        var sn=iss.fields.status&&iss.fields.status.name?iss.fields.status.name:'TO DO';
+        return{key:iss.key,summary:iss.fields.summary||'',assignee:(iss.fields.assignee&&iss.fields.assignee.displayName)||'',status:sn,original:Math.round((tt.originalEstimateSeconds||0)/360)/10,spent:Math.round((tt.timeSpentSeconds||0)/360)/10,_j:true};
+      });
+      S.tasks=newTasks.concat(S.tasks.filter(function(t){return !t._j&&!jkeys[t.key];}));
+      saveAll();renderTasks();closeModal();
+      var st=document.getElementById('jstatus');
+      st.innerHTML='<div style="background:var(--ok-bg);color:var(--ok);border-radius:var(--r);padding:8px 12px;font-size:13px;margin-bottom:12px;">Завантажено '+newTasks.length+' tasks. Remaining = Original - Spent.</div>';
+      setTimeout(function(){st.innerHTML='';},5000);
+    })
+    .catch(function(e){errEl.innerHTML='<div class="err-msg">'+e.message+'</div>';})
+    .finally(function(){btn.disabled=false;btn.textContent='Завантажити задачі';});
+}
+function getSim(key){return S.simActions[key]||{op:'',hrs:0};}
+function setSim(key,field,val){if(!S.simActions[key])S.simActions[key]={op:'',hrs:0};S.simActions[key][field]=val;saveAll();report();}
+function applySimToTask(t){
+  var sim=getSim(t.key),rem=calcRem(t);
+  if(!sim.op||sim.op==='— не обрано —'||sim.op==='Нічого не робити'||!sim.hrs)return{rem:rem,bufDelta:0};
+  var hrs=parseFloat(sim.hrs)||0,bufDelta=0;
+  if(sim.op==='Забрати час в подушку'){rem=rem-hrs;bufDelta=hrs;}
+  else if(sim.op==='Додати час з подушки'){rem=rem+hrs;bufDelta=-hrs;}
+  return{rem:parseFloat(rem.toFixed(1)),bufDelta:bufDelta};
+}
+function taskLink(t){
+  var name=esc(t.summary||t.key||'-');
+  if(JC.domain&&t.key){
+    return '<a href="https://'+JC.domain+'/browse/'+esc(t.key)+'" target="_blank" rel="noopener" style="color:var(--info);text-decoration:none;">'+name+'</a>';
+  }
+  return name;
+}
+function flag(orig,spent,rem){
+  if(!orig&&!spent)return{l:'Без трекінгу',c:'t-nt'};
+  if(!spent&&orig>0)return{l:'Не розпочато',c:'t-nt'};
+  if(rem>orig)return{l:'Overestimate',c:'t-err'};
+  if(spent>orig*.8&&rem>0)return{l:'At risk',c:'t-warn'};
+  if(rem<=0)return{l:'Виконано',c:'t-ok'};
+  return{l:'OK',c:'t-ok'};
+}
+function rowcls(orig,spent,rem){if(!spent)return'nt';if(rem>orig)return'oe';if(spent>orig*.8&&rem>0)return'ar';return'';}
+function sbadge(s){
+  var sl=(s||'').toLowerCase();
+  if(sl.indexOf('done')>=0)return'<span class="tag t-ok">'+s+'</span>';
+  if(sl.indexOf('delivery')>=0||sl.indexOf('progress')>=0)return'<span class="tag t-info">'+s+'</span>';
+  if(sl.indexOf('hold')>=0||sl.indexOf('wait')>=0)return'<span class="tag t-warn">'+s+'</span>';
+  return'<span class="tag t-n">'+s+'</span>';
+}
+function pcell(spent,orig){
+  var v='<strong>'+(spent||0)+'</strong>';if(!orig||!spent)return v;
+  var pct=Math.min(Math.round(spent/orig*100),100),col=pct>=100?'var(--err)':pct>=80?'var(--warn)':'var(--ok)';
+  return v+'<div class="pw"><div class="pb"><div class="pf" style="width:'+pct+'%;background:'+col+';"></div></div><span class="pl">'+pct+'%</span></div>';
+}
+function kpiTag(orig,spent,simSpent){
+  var s=simSpent!==undefined?simSpent:spent;
+  if(!s||!orig)return '<span style="color:var(--text3)">-</span>';
+  var k=Math.round(orig/s*100);
+  var tag='<span class="tag '+(k>=115?'t-ok':k>=100?'t-info':k>=80?'t-warn':'t-err')+'">'+k+'%</span>';
+  if(simSpent!==undefined&&simSpent!==spent)tag='<span style="font-size:10px;color:var(--text3);text-decoration:line-through;">'+Math.round(orig/(spent||1)*100)+'%</span> '+tag;
+  return tag;
+}
+function getCurrentBuf(t){
+  if(t==='a')return S.aBufCurrent>-99999?S.aBufCurrent:parseFloat((S.asow-S.areal).toFixed(1));
+  return S.nBufCurrent>-99999?S.nBufCurrent:parseFloat((S.nsow-S.nreal).toFixed(1));
+}
+function isProblem(t){
+  if(S.excludedProblems&&S.excludedProblems[t.key])return false;
+  var orig=parseFloat(t.original)||0,spent=parseFloat(t.spent)||0,rem=calcRem(t);
+  return (orig&&(!spent||(spent>orig*.8&&rem>0)||(rem>orig)))||(S.manualProblems&&S.manualProblems[t.key]);
+}
+function markNotProblem(key){
+  if(!S.excludedProblems)S.excludedProblems={};
+  S.excludedProblems[key]=true;
+  if(S.manualProblems)delete S.manualProblems[key];
+  saveAll();report();
+}
+function calcTotals(){
+  var abuf=parseFloat((S.asow-S.areal).toFixed(1)),nbuf=parseFloat((S.nsow-S.nreal).toFixed(1));
+  var aBufCur=getCurrentBuf('a'),nBufCur=getCurrentBuf('n');
+  var aS=0,aR=0,nS=0,nR=0,problems=[],totalOrig=0,totalSpent=0,taskKPIs=[];
+  for(var i=0;i<S.tasks.length;i++){
+    var t=S.tasks[i],spent=parseFloat(t.spent)||0,rem=calcRem(t),orig=parseFloat(t.original)||0;
+    if(isAnim(t.assignee)){nS+=spent;nR+=rem;}else{aS+=spent;aR+=rem;}
+    if(isProblem(t))problems.push(t);
+    if(spent>0&&orig>0){taskKPIs.push({key:t.key,summary:t.summary,assignee:t.assignee,orig:orig,spent:spent,kpi:Math.round(orig/spent*100)});totalOrig+=orig;totalSpent+=spent;}
+  }
+  var aBufSim=aBufCur,nBufSim=nBufCur,aRemSim=aR,nRemSim=nR;
+  for(var i=0;i<problems.length;i++){
+    var t=problems[i],res=applySimToTask(t),delta=res.rem-calcRem(t);
+    if(isAnim(t.assignee)){nRemSim+=delta;nBufSim+=res.bufDelta;}else{aRemSim+=delta;aBufSim+=res.bufDelta;}
+  }
+  var overallKPI=totalSpent>0?Math.round(totalOrig/totalSpent*100):0;
+  var finalBuf=parseFloat((aBufCur+nBufCur).toFixed(1)),finalBufSim=parseFloat((aBufSim+nBufSim).toFixed(1));
+  var aRemTasks=parseFloat((S.areal-aS).toFixed(1)),nRemTasks=parseFloat((S.nreal-nS).toFixed(1));
+  var aRemTotal=parseFloat((S.asow-aS).toFixed(1)),nRemTotal=parseFloat((S.nsow-nS).toFixed(1));
+  var aRemTasksSim=parseFloat((aRemTasks+(aRemSim-aR)).toFixed(1)),nRemTasksSim=parseFloat((nRemTasks+(nRemSim-nR)).toFixed(1));
+  var aRemTotalSim=parseFloat((aRemTasksSim+aBufSim).toFixed(1)),nRemTotalSim=parseFloat((nRemTasksSim+nBufSim).toFixed(1));
+  return{abuf:abuf,nbuf:nbuf,aBufCur:aBufCur,nBufCur:nBufCur,aS:aS,aR:aR,nS:nS,nR:nR,
+    aRemTasks:aRemTasks,nRemTasks:nRemTasks,aRemTotal:aRemTotal,nRemTotal:nRemTotal,
+    aRemTasksSim:aRemTasksSim,nRemTasksSim:nRemTasksSim,aRemTotalSim:aRemTotalSim,nRemTotalSim:nRemTotalSim,
+    aBufSim:parseFloat(aBufSim.toFixed(1)),nBufSim:parseFloat(nBufSim.toFixed(1)),
+    aRemSim:parseFloat(aRemSim.toFixed(1)),nRemSim:parseFloat(nRemSim.toFixed(1)),
+    ap:S.asow?Math.round(aS/S.asow*100):0,np:S.nsow?Math.round(nS/S.nsow*100):0,
+    problems:problems,taskKPIs:taskKPIs,overallKPI:overallKPI,finalBuf:finalBuf,finalBufSim:finalBufSim};
+}
+function bc(v){return v<0?'danger':v===0?'warn':'ok';}
+function cc(p){return p>=100?'danger':p>=80?'warn':'ok';}
+
+function report(){
+  var T=calcTotals();
+  var hasSim=Object.keys(S.simActions).some(function(k){var a=S.simActions[k];return a&&a.op&&a.op!=='— не обрано —'&&((a.op!=='Нічого не робити'&&a.hrs)||a.op==='Нічого не робити');});
+  var h='';
+
+  // Підсумок cards
+  h+='<div class="sum2">';
+  h+='<div class="scard"><h3>Арт</h3>';
+  h+='<div class="srow"><span>SOW estimate</span><span>'+S.asow+' h</span></div>';
+  h+='<div class="srow"><span>Real estimate</span><span>'+S.areal+' h</span></div>';
+  h+='<div class="srow"><span>Подушка початкова</span><span class="'+bc(T.abuf)+'">'+T.abuf+' h</span></div>';
+  h+='<div class="srow buf-edit"><span>Актуальна подушка (цей тиждень)</span><input type="number" class="buf-input" value="'+T.aBufCur.toFixed(1)+'" step="0.5" data-t="a" onchange="updBuf(this)"></div>';
+  h+='<div class="srow"><span>Затрековано</span><span class="'+cc(T.ap)+'">'+T.aS.toFixed(1)+' h ('+T.ap+'%)</span></div>';
+  h+='<div class="srow"><span>Залишилось в задачах</span><span>'+T.aRemTasks.toFixed(1)+' h</span></div>';
+  h+='<div class="srow"><span>Залишилось всього</span><span class="'+bc(T.aRemTotal)+'"><strong>'+T.aRemTotal.toFixed(1)+' h</strong></span></div>';
+  if(hasSim)h+='<div class="srow sim"><span>Після симуляції</span><span class="'+bc(T.aRemTotalSim)+'"><strong>'+T.aRemTotalSim.toFixed(1)+' h</strong> (buf: '+T.aBufSim.toFixed(1)+' h)</span></div>';
+  h+='</div>';
+
+  h+='<div class="scard"><h3>Анімація</h3>';
+  h+='<div class="srow"><span>SOW estimate</span><span>'+S.nsow+' h</span></div>';
+  h+='<div class="srow"><span>Real estimate</span><span>'+S.nreal+' h</span></div>';
+  h+='<div class="srow"><span>Подушка початкова</span><span class="'+bc(T.nbuf)+'">'+T.nbuf+' h</span></div>';
+  h+='<div class="srow buf-edit"><span>Актуальна подушка (цей тиждень)</span><input type="number" class="buf-input" value="'+T.nBufCur.toFixed(1)+'" step="0.5" data-t="n" onchange="updBuf(this)"></div>';
+  h+='<div class="srow"><span>Затрековано</span><span class="'+cc(T.np)+'">'+T.nS.toFixed(1)+' h ('+T.np+'%)</span></div>';
+  h+='<div class="srow"><span>Залишилось в задачах</span><span>'+T.nRemTasks.toFixed(1)+' h</span></div>';
+  h+='<div class="srow"><span>Залишилось всього</span><span class="'+bc(T.nRemTotal)+'"><strong>'+T.nRemTotal.toFixed(1)+' h</strong></span></div>';
+  if(hasSim)h+='<div class="srow sim"><span>Після симуляції</span><span class="'+bc(T.nRemTotalSim)+'"><strong>'+T.nRemTotalSim.toFixed(1)+' h</strong> (buf: '+T.nBufSim.toFixed(1)+' h)</span></div>';
+  h+='</div>';
+  h+='</div>';
+
+  // Final buffer
+  h+='<div class="scard" style="margin-bottom:1.25rem;">';
+  h+='<h3>Фінальна подушка проєкту</h3>';
+  h+='<div class="srow"><span>Арт</span><span class="'+bc(T.aBufCur)+'"><strong>'+T.aBufCur.toFixed(1)+' h</strong></span></div>';
+  h+='<div class="srow"><span>Анімація</span><span class="'+bc(T.nBufCur)+'"><strong>'+T.nBufCur.toFixed(1)+' h</strong></span></div>';
+  h+='<div class="srow" style="border-top:1.5px solid var(--border2);margin-top:4px;padding-top:8px;"><span>Всього</span><span class="'+bc(T.finalBuf)+'"><strong>'+T.finalBuf.toFixed(1)+' h</strong></span></div>';
+  if(hasSim)h+='<div class="srow sim"><span>Після симуляції</span><span class="'+bc(T.finalBufSim)+'"><strong>'+T.finalBufSim.toFixed(1)+' h</strong></span></div>';
+  h+='</div>';
+
+  // Legend
+  h+='<div class="legend">'
+    +'<div class="legend-item"><div class="legend-dot" style="background:var(--err-bg);border:.5px solid var(--err);"></div> Overestimate</div>'
+    +'<div class="legend-item"><div class="legend-dot" style="background:var(--warn-bg);border:.5px solid var(--warn);"></div> At risk (&gt;80%)</div>'
+    +'<div class="legend-item"><div class="legend-dot" style="background:var(--nt-bg);border:.5px solid var(--nt);"></div> No tracking</div>'
+    +'</div>';
+
+  // Problems
+  h+='<div style="margin-bottom:1.25rem;">';
+  h+='<div class="ctitle" style="margin-bottom:10px;">Проблемні задачі ('+T.problems.length+')<span style="font-size:11px;color:var(--text3);font-weight:400;text-transform:none;letter-spacing:0;margin-left:8px;">підсвічені авто або додані вручну</span></div>';
+  if(T.problems.length){
+    h+='<div class="tw"><table><thead><tr>';
+    h+='<th style="width:70px">Key</th><th>Задача</th><th style="width:110px">Виконавець</th>';
+    h+='<th style="width:70px">Тип</th><th style="width:95px">Статус</th>';
+    h+='<th style="width:68px">Orig h</th><th style="width:88px">Spent h</th>';
+    h+='<th style="width:68px">Rem h</th><th style="width:110px">Прапор</th>';
+    h+='<th style="min-width:320px">Коментар + симуляція</th>';
+    h+='<th style="width:90px"></th>';
+    h+='</tr></thead><tbody>';
+    for(var i=0;i<T.problems.length;i++){
+      var t=T.problems[i],orig=parseFloat(t.original)||0,spent=parseFloat(t.spent)||0,rem=calcRem(t);
+      var sim=getSim(t.key),simRes=applySimToTask(t);
+      var fl=flag(orig,spent,rem),rc=rowcls(orig,spent,rem);
+      var mp=S.manualProblems&&S.manualProblems[t.key];
+      if(mp)rc='ar';
+      var tb=isAnim(t.assignee)?'<span class="tag t-anim">анімація</span>':'<span class="tag t-art">арт</span>';
+      var cid='c'+t.key.replace(/[^a-z0-9]/gi,'');
+      var cv=S.comments[cid]||'';
+      var sopts='';
+      for(var op=0;op<SIM_OPS.length;op++)sopts+='<option value="'+SIM_OPS[op]+'"'+(sim.op===SIM_OPS[op]?' selected':'')+'>'+SIM_OPS[op]+'</option>';
+      var bufLeftBase=isAnim(t.assignee)?T.nBufCur:T.aBufCur;
+      var bufLeft=parseFloat((bufLeftBase+simRes.bufDelta).toFixed(1));
+      var simHtml='';
+      if(sim.op&&sim.op!=='— не обрано —'&&sim.op!=='Нічого не робити'&&sim.hrs){
+        var newBuf=bufLeft;
+        simHtml='<div class="sim-result">Rem: <strong>'+simRes.rem+'h</strong> · Подушка: <span class="tag '+(newBuf<0?'t-err':newBuf===0?'t-warn':'t-ok')+'">'+newBuf+' h</span></div>';
+      }
+      var kpi=spent>0&&orig>0?Math.round(orig/spent*100):0;
+      var simHrs=sim.op&&sim.op!=='— не обрано —'&&sim.op!=='Нічого не робити'?parseFloat(sim.hrs||0):0;
+      var simOrig=orig;
+      if(simHrs>0){
+        if(sim.op==='Додати час з подушки')simOrig=orig+simHrs;
+        else if(sim.op==='Забрати час в подушку')simOrig=Math.max(0,orig-simHrs);
+      }
+      var simKpi=simOrig>0&&spent>0?Math.round(simOrig/spent*100):kpi;
+      var kTag=spent>0?'<span class="tag '+(kpi>=115?'t-ok':kpi>=100?'t-info':kpi>=80?'t-warn':'t-err')+'">KPI '+kpi+'%</span>'+(simKpi!==kpi?' → <span class="tag '+(simKpi>=115?'t-ok':simKpi>=100?'t-info':simKpi>=80?'t-warn':'t-err')+'">'+simKpi+'%</span>':''):'';
+      h+='<tr class="'+rc+'">';
+      h+='<td style="font-size:12px;color:var(--text2);">'+esc(t.key||'-')+'</td>';
+      h+='<td style="min-width:220px;max-width:340px;white-space:normal;word-break:break-word;">'+taskLink(t)+'</td>';
+      h+='<td>'+esc(t.assignee||'-')+'</td>';
+      h+='<td>'+tb+'</td>';
+      h+='<td>'+sbadge(t.status)+'</td>';
+      h+='<td>'+(orig||'-')+'</td>';
+      h+='<td>'+pcell(spent,orig)+'</td>';
+      h+='<td>'+rem+'</td>';
+      h+='<td><span class="tag '+fl.c+'">'+fl.l+'</span>';
+      if(mp)h+='<br><span class="tag t-warn" style="font-size:10px;margin-top:3px;">вручну</span>';
+      h+=' '+kTag+'</td>';
+      h+='<td style="min-width:320px;">';
+      h+='<textarea class="cmt" placeholder="Коментар ПМа..." data-cid="'+cid+'" oninput="S.comments[this.dataset.cid]=this.value;saveAll();">'+esc(cv)+'</textarea>';
+      h+='<div class="sim-panel">';
+      h+='<div class="sim-row"><label>Дія:</label>';
+      h+='<select class="sim-select" data-key="'+t.key+'" onchange="setSim(this.dataset.key,\'op\',this.value)">'+sopts+'</select>';
+      h+='<input type="number" class="sim-input" placeholder="h" value="'+(sim.hrs||'')+'" min="0" step="0.5" data-key="'+t.key+'" onchange="setSim(this.dataset.key,\'hrs\',parseFloat(this.value)||0)">';
+      h+='</div>'+simHtml+'</div></td>';
+      h+='<td><button class="btn btn-sm btn-o" data-key="'+t.key+'" onclick="markNotProblem(this.dataset.key)" title="Прибрати з проблемних">Не проблемна</button></td>';
+      h+='</tr>';
+    }
+    h+='</tbody></table></div>';
+  }else{h+='<div class="empty">🎉 Проблемних задач немає</div>';}
+  h+='</div>';
+
+  // Всі задачі with KPI column
+  if(T.overallKPI>0){
+    var okBig=T.overallKPI>=115?'ok':T.overallKPI>=100?'':T.overallKPI>=80?'warn':'danger';
+    h+='<div style="display:inline-flex;align-items:center;gap:12px;margin-bottom:12px;background:var(--bg2);border-radius:var(--rl);padding:.75rem 1.25rem;">';
+    h+='<div><div style="font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em;">Загальний KPI проєкту</div>';
+    h+='<div style="font-size:26px;font-weight:500;" class="'+okBig+'">'+T.overallKPI+'%';
+    h+='<span style="font-size:12px;font-weight:400;color:var(--text2);margin-left:6px;">'+(T.overallKPI>=115?'Бонусна зона':T.overallKPI<100?'Нижче норми':'')+'</span>';
+    h+='</div></div></div>';
+  }
+  h+='<div class="ctitle" style="margin-bottom:10px;">Всі задачі ('+S.tasks.length+')</div>';
+  if(S.tasks.length){
+    h+='<div class="tw"><table><thead><tr>';
+    h+='<th style="width:70px">Key</th><th>Задача</th><th style="width:110px">Виконавець</th>';
+    h+='<th style="width:70px">Тип</th><th style="width:95px">Статус</th>';
+    h+='<th style="width:68px">Orig h</th><th style="width:88px">Spent h</th>';
+    h+='<th style="width:68px">Rem h</th><th style="width:100px">Стан</th>';
+    h+='<th style="width:80px">KPI %</th><th style="width:130px">Дія</th>';
+    h+='</tr></thead><tbody>';
+    for(var i=0;i<S.tasks.length;i++){
+      var t=S.tasks[i],orig=parseFloat(t.original)||0,spent=parseFloat(t.spent)||0,rem=calcRem(t);
+      var fl=flag(orig,spent,rem),rc=rowcls(orig,spent,rem);
+      var tb=isAnim(t.assignee)?'<span class="tag t-anim">анімація</span>':'<span class="tag t-art">арт</span>';
+      var inProb=S.manualProblems&&S.manualProblems[t.key];
+      var addBtn=inProb
+        ?'<span class="tag t-warn" style="font-size:10px;">В проблемних</span>'
+        :'<button class="btn btn-sm" style="height:26px;padding:0 8px;font-size:11px;background:var(--warn-bg);color:var(--warn);border-color:var(--warn);" data-key="'+t.key+'" onclick="showAddProb(this.dataset.key)">+ В проблемні</button>';
+      h+='<tr class="'+rc+'">';
+      h+='<td style="font-size:12px;color:var(--text2);">'+esc(t.key||'-')+'</td>';
+      h+='<td style="min-width:220px;max-width:340px;white-space:normal;word-break:break-word;">'+taskLink(t)+'</td>';
+      h+='<td>'+esc(t.assignee||'-')+'</td>';
+      h+='<td>'+tb+'</td>';
+      h+='<td>'+sbadge(t.status)+'</td>';
+      h+='<td>'+(orig||'-')+'</td>';
+      h+='<td>'+pcell(spent,orig)+'</td>';
+      h+='<td>'+rem+'</td>';
+      h+='<td><span class="tag '+fl.c+'">'+fl.l+'</span></td>';
+      h+='<td>'+kpiTag(orig,spent)+'</td>';
+      h+='<td>'+addBtn+'</td>';
+      h+='</tr>';
+    }
+    h+='</tbody></table></div>';
+  }else{h+='<div class="empty">Немає задач</div>';}
+
+  document.getElementById('rpt').innerHTML=h;
+}
+function updBuf(el){
+  if(el.dataset.t==='a')S.aBufCurrent=parseFloat(el.value)||0;
+  else S.nBufCurrent=parseFloat(el.value)||0;
+  saveAll();report();
+}
+function showAddProb(key){
+  var reasons=['Overestimate — Естімація більше, ніж потрібно на виконання задачі','Вихід за естімацію — задача займе більше ніж залишилось','Затримка — задача не розпочата вчасно','Other'];
+  var opts=reasons.map(function(r){return '<option>'+r+'</option>';}).join('');
+  var d=document.createElement('div');
+  d.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:flex;align-items:center;justify-content:center;';
+  d.id='prob-modal';
+  d.innerHTML='<div style="background:var(--bg);border-radius:12px;padding:1.5rem;width:100%;max-width:420px;margin:1rem;">'
+    +'<h2 style="font-size:16px;font-weight:500;margin-bottom:8px;">Додати в проблемні задачі</h2>'
+    +'<p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Задача: <strong>'+key+'</strong></p>'
+    +'<label style="font-size:12px;color:var(--text2);">Причина</label>'
+    +'<select id="pr-sel" style="display:block;width:100%;height:36px;margin-top:6px;padding:0 10px;border:.5px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--bg2);color:var(--text);font-family:inherit;">'+opts+'</select>'
+    +'<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:1.25rem;">'
+    +'<button style="height:36px;padding:0 16px;border:.5px solid var(--border2);border-radius:var(--r);background:transparent;color:var(--text);font-size:13px;cursor:pointer;font-family:inherit;" onclick="document.getElementById(\'prob-modal\').remove()">Скасувати</button>'
+    +'<button style="height:36px;padding:0 16px;border:.5px solid var(--warn);border-radius:var(--r);background:var(--warn-bg);color:var(--warn);font-size:13px;cursor:pointer;font-family:inherit;" data-key="'+key+'" onclick="doAddProb(this.dataset.key)">Додати</button>'
+    +'</div></div>';
+  document.body.appendChild(d);
+}
+function doAddProb(key){
+  var reason=document.getElementById('pr-sel').value;
+  if(!S.manualProblems)S.manualProblems={};
+  S.manualProblems[key]=reason;
+  if(S.excludedProblems)delete S.excludedProblems[key];
+  var cid='c'+key.replace(/[^a-z0-9]/gi,'');
+  if(!S.comments[cid])S.comments[cid]=reason;
+  saveAll();
+  document.getElementById('prob-modal').remove();
+  report();
+}
+function exportExcel(){
+  var T=calcTotals(),date=new Date().toLocaleDateString('uk-UA');
+  var scr=document.createElement('script');
+  scr.src='https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+  scr.onload=function(){doExport(T,date);};
+  document.head.appendChild(scr);
+  if(window.XLSX)doExport(T,date);
+}
+function doExport(T,date){
+  var wb=window.XLSX.utils.book_new();
+  var sum=[
+    ['PM TIME TRACKER - '+S.pname,'','','','','','Клієнт: '+S.pclient,'Дата: '+date],
+    [],['ART'],
+    ['SOW','Real estimate','Подушка початкова','Актуальна подушка','Tracked','%','Залишилось в задачах','Залишилось всього'],
+    [S.asow,S.areal,T.abuf,T.aBufCur,parseFloat(T.aS.toFixed(1)),T.ap+'%',parseFloat(T.aRemTasks.toFixed(1)),parseFloat(T.aRemTotal.toFixed(1))],
+    [],['ANIMATION'],
+    ['SOW','Real estimate','Подушка початкова','Актуальна подушка','Tracked','%','Залишилось в задачах','Залишилось всього'],
+    [S.nsow,S.nreal,T.nbuf,T.nBufCur,parseFloat(T.nS.toFixed(1)),T.np+'%',parseFloat(T.nRemTasks.toFixed(1)),parseFloat(T.nRemTotal.toFixed(1))],
+    [],['ФІНАЛЬНА ПОДУШКА','','','','','','',T.finalBuf+' h']
+  ];
+  var ws1=window.XLSX.utils.aoa_to_sheet(sum);
+  ws1['!cols']=[{wch:18},{wch:14},{wch:16},{wch:16},{wch:12},{wch:6},{wch:18},{wch:18}];
+  window.XLSX.utils.book_append_sheet(wb,ws1,'Підсумок');
+  var pRows=[['Key','Task','Виконавець','Type','Status','Orig h','Spent h','Rem h','KPI %','Flag','Comment','Action','Hours','Rem after sim']];
+  for(var i=0;i<T.problems.length;i++){
+    var t=T.problems[i],orig=parseFloat(t.original)||0,spent=parseFloat(t.spent)||0,rem=calcRem(t);
+    var kpi=spent>0&&orig>0?Math.round(orig/spent*100):0;
+    var fl=flag(orig,spent,rem);
+    var cid='c'+t.key.replace(/[^a-z0-9]/gi,''),cv=S.comments[cid]||'';
+    var sim=getSim(t.key),simRes=applySimToTask(t);
+    pRows.push([t.key,t.summary,t.assignee,isAnim(t.assignee)?'анімація':'арт',t.status,orig,spent,rem,spent>0?kpi+'%':'-',fl.l,cv,sim.op&&sim.op!=='— не обрано —'?sim.op:'',sim.hrs||'',simRes.rem]);
+  }
+  var ws2=window.XLSX.utils.aoa_to_sheet(pRows);
+  ws2['!cols']=[{wch:8},{wch:30},{wch:20},{wch:8},{wch:14},{wch:8},{wch:8},{wch:8},{wch:8},{wch:14},{wch:35},{wch:25},{wch:6},{wch:14}];
+  window.XLSX.utils.book_append_sheet(wb,ws2,'Проблемні задачі');
+  var aRows=[['Key','Task','Виконавець','Type','Status','Orig h','Spent h','Rem h','KPI %','State']];
+  for(var i=0;i<S.tasks.length;i++){
+    var t=S.tasks[i],orig=parseFloat(t.original)||0,spent=parseFloat(t.spent)||0,rem=calcRem(t);
+    var kpi=spent>0&&orig>0?Math.round(orig/spent*100):0;
+    var fl=flag(orig,spent,rem);
+    aRows.push([t.key,t.summary,t.assignee,isAnim(t.assignee)?'анімація':'арт',t.status,orig,spent,rem,spent>0?kpi+'%':'-',fl.l]);
+  }
+  var ws3=window.XLSX.utils.aoa_to_sheet(aRows);
+  ws3['!cols']=[{wch:8},{wch:30},{wch:20},{wch:8},{wch:14},{wch:8},{wch:8},{wch:8},{wch:8},{wch:14}];
+  window.XLSX.utils.book_append_sheet(wb,ws3,'Всі задачі');
+  window.XLSX.writeFile(wb,(S.pkey||'report')+'_'+date.replace(/\./g,'-')+'_tracker.xlsx');
+}
+function copyReport(){
+  var T=calcTotals(),lines=[];
+  lines.push('PM Time Report — '+S.pname+(S.pclient?' ('+S.pclient+')':''));
+  lines.push('');lines.push('ART');
+  lines.push('SOW: '+S.asow+' h | Real: '+S.areal+' h | Подушка: '+T.aBufCur.toFixed(1)+' h');
+  lines.push('Tracked: '+T.aS.toFixed(1)+' h ('+T.ap+'%) | Remaining: '+T.aRemTotal.toFixed(1)+' h');
+  lines.push('');lines.push('ANIMATION');
+  lines.push('SOW: '+S.nsow+' h | Real: '+S.nreal+' h | Подушка: '+T.nBufCur.toFixed(1)+' h');
+  lines.push('Tracked: '+T.nS.toFixed(1)+' h ('+T.np+'%) | Remaining: '+T.nRemTotal.toFixed(1)+' h');
+  lines.push('');lines.push('Final buffer: '+T.finalBuf.toFixed(1)+' h');
+  if(T.overallKPI>0)lines.push('Загальний KPI: '+T.overallKPI+'%'+(T.overallKPI>=115?' - Бонусна зона':''));
+  if(T.problems.length){
+    lines.push('');lines.push('ПРОБЛЕМНІ ЗАДАЧІ ('+T.problems.length+')');
+    for(var i=0;i<T.problems.length;i++){
+      var t=T.problems[i],orig=parseFloat(t.original)||0,spent=parseFloat(t.spent)||0,rem=calcRem(t);
+      var kpi=spent>0&&orig>0?Math.round(orig/spent*100):0;
+      var fl=flag(orig,spent,rem);
+      var cid='c'+t.key.replace(/[^a-z0-9]/gi,''),cv=S.comments[cid]||'';
+      var sim=getSim(t.key),simRes=applySimToTask(t);
+      lines.push('');lines.push(t.key+' - '+t.summary+' ('+t.assignee+')');
+      lines.push('Orig: '+orig+'h | Spent: '+spent+'h | Rem: '+rem+'h | KPI: '+(spent>0?kpi+'%':'-')+' | '+fl.l);
+      if(cv)lines.push('Коментар: '+cv);
+      if(sim.op&&sim.op!=='— не обрано —'&&sim.op!=='Нічого не робити'&&sim.hrs)lines.push('Симуляція: '+sim.op+' '+sim.hrs+'h -> Rem: '+simRes.rem+'h');
+    }
+  }
+  navigator.clipboard.writeText(lines.join('\n')).then(function(){
+    var el=document.getElementById('copy-ok');el.style.display='inline';
+    setTimeout(function(){el.style.display='none';},2500);
+  });
+}
+function renderAll(){
+  document.getElementById('pname').value=S.pname||'';document.getElementById('pkey').value=S.pkey||'';
+  document.getElementById('pclient').value=S.pclient||'';document.getElementById('asow').value=S.asow||'';
+  document.getElementById('areal').value=S.areal||'';document.getElementById('abuf').value=S.abuf||'';
+  document.getElementById('nsow').value=S.nsow||'';document.getElementById('nreal').value=S.nreal||'';
+  document.getElementById('nbuf').value=S.nbuf||'';
+  renderAnims();renderTasks();badge();
+}
+loadAll();
+</script>
+</body>
+</html>
