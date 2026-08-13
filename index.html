@@ -194,7 +194,23 @@ tr.oe>td{background:var(--err-bg);}tr.ar>td{background:var(--warn-bg);}tr.nt>td{
   <div class="pane" id="pane-overtime">
     <div class="card">
       <div class="ctitle">⏱ Overtime — проєкт OSP</div>
-      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Підтягує worklogs за поточний тиждень (Пн–Нд) по кожному співробітнику з проєкту OSP.</p>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Підтягує worklogs по кожному співробітнику з проєкту OSP за вибраний період.</p>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+        <div class="f" style="max-width:160px;min-width:130px;">
+          <label>Від</label>
+          <input type="date" id="ot-from" style="height:36px;padding:0 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--bg2);color:var(--text);font-family:inherit;"/>
+        </div>
+        <div class="f" style="max-width:160px;min-width:130px;">
+          <label>До</label>
+          <input type="date" id="ot-to" style="height:36px;padding:0 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--bg2);color:var(--text);font-family:inherit;"/>
+        </div>
+        <div style="padding-top:20px;">
+          <button class="btn btn-o btn-sm" onclick="otSetWeek(-1)">← Минулий тиждень</button>
+        </div>
+        <div style="padding-top:20px;">
+          <button class="btn btn-o btn-sm" onclick="otSetWeek(0)">Поточний тиждень</button>
+        </div>
+      </div>
       <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
         <button class="btn btn-jira" onclick="fetchOvertime()">⏱ Підтягнути Overtime з Jira</button>
         <span style="font-size:12px;color:var(--text2);">використовує збережені дані Jira</span>
@@ -260,7 +276,11 @@ function go(n){
   var tabs=['setup','tasks','report','overtime'];
   document.querySelectorAll('.tab')[tabs.indexOf(n)].classList.add('on');
   if(n==='report')report();
-  if(n==='overtime')renderOtList();
+  if(n==='overtime'){
+    // init date pickers to current week if empty
+    if(!document.getElementById('ot-from').value)otSetWeek(0);
+    renderOtList();
+  }
 }
 function doReset(){
   S={pname:'',pkey:'',pclient:'',asow:0,areal:0,abuf:0,nsow:0,nreal:0,nbuf:0,aBufCurrent:-99999,nBufCurrent:-99999,anims:[],tasks:[],comments:{},simActions:{},manualProblems:{},excludedProblems:{}};
@@ -719,8 +739,14 @@ function renderAll(){
 }
 // OVERTIME
 var OT={worklogs:[],selected:{}};
-function otWeekBounds(){
+function otFmtDate(d){
+  var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+dd;
+}
+function otWeekBounds(offset){
+  offset=offset||0;
   var now=new Date();
+  now.setDate(now.getDate()+offset*7);
   var day=now.getDay();
   var mon=new Date(now);
   mon.setDate(now.getDate()-(day===0?6:day-1));
@@ -730,8 +756,23 @@ function otWeekBounds(){
   sun.setHours(23,59,59,999);
   return{from:mon,to:sun};
 }
+function otSetWeek(offset){
+  var b=otWeekBounds(offset);
+  document.getElementById('ot-from').value=otFmtDate(b.from);
+  document.getElementById('ot-to').value=otFmtDate(b.to);
+}
+function otGetBounds(){
+  var fromVal=document.getElementById('ot-from').value;
+  var toVal=document.getElementById('ot-to').value;
+  if(fromVal&&toVal){
+    var from=new Date(fromVal);from.setHours(0,0,0,0);
+    var to=new Date(toVal);to.setHours(23,59,59,999);
+    return{from:from,to:to};
+  }
+  return otWeekBounds(0);
+}
 function otWeekLabel(){
-  var b=otWeekBounds();
+  var b=otGetBounds();
   var fmt=function(d){return d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();};
   return fmt(b.from)+' — '+fmt(b.to);
 }
@@ -755,7 +796,7 @@ function fetchOvertime(){
       if(!issues.length)throw new Error('Задач не знайдено в проєкті OSP.');
       st.innerHTML='<div style="color:var(--text2);font-size:13px;">Знайдено '+issues.length+' задач. Завантажую worklogs...</div>';
       // Step 2: fetch worklogs for each issue in parallel
-      var bounds=otWeekBounds();
+      var bounds=otGetBounds();
       var promises=issues.map(function(iss){
         var wlUrl='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog';
         var wu='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlUrl);
