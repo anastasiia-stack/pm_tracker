@@ -135,6 +135,7 @@ tr.oe>td{background:var(--err-bg);}tr.ar>td{background:var(--warn-bg);}tr.nt>td{
     <button class="tab on" onclick="go('setup')">Налаштування</button>
     <button class="tab" onclick="go('tasks')">Задачі</button>
     <button class="tab" onclick="go('report')">Звіт</button>
+    <button class="tab" onclick="go('overtime')" style="color:var(--warn);">⏱ Overtime</button>
   </div>
   <div class="pane on" id="pane-setup">
     <div class="card">
@@ -190,7 +191,29 @@ tr.oe>td{background:var(--err-bg);}tr.ar>td{background:var(--warn-bg);}tr.nt>td{
       <button class="btn" onclick="go('report')">Переглянути звіт →</button>
     </div>
   </div>
-  <div class="pane" id="pane-report">
+  <div class="pane" id="pane-overtime">
+    <div class="card">
+      <div class="ctitle">⏱ Overtime — проєкт OSP</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Підтягує worklogs за поточний тиждень (Пн–Нд) по кожному співробітнику з проєкту OSP.</p>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+        <button class="btn btn-jira" onclick="fetchOvertime()">⏱ Підтягнути Overtime з Jira</button>
+        <span style="font-size:12px;color:var(--text2);">використовує збережені дані Jira</span>
+      </div>
+      <div id="ot-status"></div>
+      <div id="ot-list"></div>
+    </div>
+    <div id="ot-report-block" style="display:none;">
+      <div class="card">
+        <div class="ctitle">📋 Вибраний overtime для звіту</div>
+        <div id="ot-selected-summary"></div>
+        <div style="margin-top:12px;display:flex;gap:10px;">
+          <button class="btn btn-ok" onclick="copyOtReport()">⎘ Копіювати overtime звіт</button>
+          <span class="copy-ok" id="ot-copy-ok">Скопійовано!</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:1rem;"><button class="btn btn-o" onclick="go('report')">← Назад до звіту</button></div>
+  </div>
     <div class="export-bar">
       <button class="btn btn-export" onclick="exportExcel()">↓ Експорт в Excel</button>
       <button class="btn btn-ok" onclick="copyReport()">⎘ Копіювати звіт</button>
@@ -234,8 +257,10 @@ function go(n){
   document.querySelectorAll('.pane').forEach(function(el){el.classList.remove('on');});
   document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('on');});
   document.getElementById('pane-'+n).classList.add('on');
-  document.querySelectorAll('.tab')[['setup','tasks','report'].indexOf(n)].classList.add('on');
+  var tabs=['setup','tasks','report','overtime'];
+  document.querySelectorAll('.tab')[tabs.indexOf(n)].classList.add('on');
   if(n==='report')report();
+  if(n==='overtime')renderOtList();
 }
 function doReset(){
   S={pname:'',pkey:'',pclient:'',asow:0,areal:0,abuf:0,nsow:0,nreal:0,nbuf:0,aBufCurrent:-99999,nBufCurrent:-99999,anims:[],tasks:[],comments:{},simActions:{},manualProblems:{},excludedProblems:{}};
@@ -692,6 +717,191 @@ function renderAll(){
   document.getElementById('nbuf').value=S.nbuf||'';
   renderAnims();renderTasks();badge();
 }
+// OVERTIME
+var OT={worklogs:[],selected:{}};
+function otWeekBounds(){
+  var now=new Date();
+  var day=now.getDay();
+  var mon=new Date(now);
+  mon.setDate(now.getDate()-(day===0?6:day-1));
+  mon.setHours(0,0,0,0);
+  var sun=new Date(mon);
+  sun.setDate(mon.getDate()+6);
+  sun.setHours(23,59,59,999);
+  return{from:mon,to:sun};
+}
+function otWeekLabel(){
+  var b=otWeekBounds();
+  var fmt=function(d){return d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();};
+  return fmt(b.from)+' — '+fmt(b.to);
+}
+function fetchOvertime(){
+  if(!JC.domain||!JC.email||!JC.token){
+    document.getElementById('ot-status').innerHTML='<div class="err-msg">Спочатку введи дані Jira на вкладці Задачі → кнопка "Підтягнути з Jira".</div>';
+    return;
+  }
+  var domain=JC.domain.replace(/^https?:\/\//,'').replace(/\/$/,'');
+  var btn=event.target;btn.disabled=true;btn.textContent='Завантажую...';
+  var st=document.getElementById('ot-status');
+  st.innerHTML='<div style="color:var(--text2);font-size:13px;">Завантажую задачі OSP...</div>';
+  var auth=btoa(JC.email+':'+JC.token);
+  // Step 1: get all issues from OSP project
+  var jiraUrl='https://'+domain+'/rest/api/3/search/jql?jql=project=OSP ORDER BY key ASC&fields=summary,assignee&maxResults=100';
+  var url='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(jiraUrl);
+  fetch(url,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
+    .then(function(r){if(!r.ok)throw new Error('Jira помилка '+r.status);return r.json();})
+    .then(function(data){
+      var issues=data.issues||[];
+      if(!issues.length)throw new Error('Задач не знайдено в проєкті OSP.');
+      st.innerHTML='<div style="color:var(--text2);font-size:13px;">Знайдено '+issues.length+' задач. Завантажую worklogs...</div>';
+      // Step 2: fetch worklogs for each issue in parallel
+      var bounds=otWeekBounds();
+      var promises=issues.map(function(iss){
+        var wlUrl='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog';
+        var wu='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlUrl);
+        return fetch(wu,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
+          .then(function(r){return r.json();})
+          .then(function(d){
+            var worklogs=(d.worklogs||[]).filter(function(w){
+              var s=new Date(w.started);
+              return s>=bounds.from&&s<=bounds.to;
+            });
+            return{
+              key:iss.key,
+              summary:iss.fields.summary||iss.key,
+              assignee:(iss.fields.assignee&&iss.fields.assignee.displayName)||'—',
+              worklogs:worklogs.map(function(w){
+                return{
+                  id:w.id,
+                  author:(w.author&&w.author.displayName)||'—',
+                  hrs:Math.round((w.timeSpentSeconds||0)/360)/10,
+                  comment:w.comment&&w.comment.content?w.comment.content.map(function(b){return b.content?b.content.map(function(c){return c.text||'';}).join(''):'';}).join(' ').trim():'',
+                  started:w.started
+                };
+              })
+            };
+          });
+      });
+      return Promise.all(promises);
+    })
+    .then(function(results){
+      OT.worklogs=results.filter(function(r){return r.worklogs.length>0;});
+      OT.selected={};
+      renderOtList();
+      st.innerHTML='<div style="background:var(--ok-bg);color:var(--ok);border-radius:var(--r);padding:8px 12px;font-size:13px;margin-bottom:8px;">✓ Завантажено overtime за '+otWeekLabel()+'</div>';
+      setTimeout(function(){st.innerHTML='';},5000);
+    })
+    .catch(function(e){
+      document.getElementById('ot-status').innerHTML='<div class="err-msg">'+e.message+'</div>';
+    })
+    .finally(function(){btn.disabled=false;btn.textContent='⏱ Підтягнути Overtime з Jira';});
+}
+function toggleOtEntry(issKey,wlId){
+  var k=issKey+'__'+wlId;
+  if(OT.selected[k])delete OT.selected[k];
+  else OT.selected[k]=true;
+  renderOtList();
+  renderOtSummary();
+}
+function renderOtList(){
+  var el=document.getElementById('ot-list');
+  if(!OT.worklogs.length){el.innerHTML='';return;}
+  var totalSelected=0,totalHrs=0;
+  var h='<div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Тиждень: <strong style="color:var(--text);">'+otWeekLabel()+'</strong> · Вибери записи що відносяться до цього проєкту</div>';
+  h+='<div class="tw"><table><thead><tr>'
+    +'<th style="width:40px"></th>'
+    +'<th style="width:90px">Ключ</th>'
+    +'<th style="width:160px">Виконавець</th>'
+    +'<th style="width:80px">Дата</th>'
+    +'<th style="width:70px">Год</th>'
+    +'<th>Коментар</th>'
+    +'</tr></thead><tbody>';
+  for(var i=0;i<OT.worklogs.length;i++){
+    var iss=OT.worklogs[i];
+    for(var j=0;j<iss.worklogs.length;j++){
+      var w=iss.worklogs[j];
+      var k=iss.key+'__'+w.id;
+      var checked=OT.selected[k]?'checked':'';
+      if(OT.selected[k]){totalSelected++;totalHrs+=w.hrs;}
+      var d=new Date(w.started);
+      var ds=d.getDate()+'.'+(d.getMonth()+1);
+      h+='<tr style="'+(OT.selected[k]?'background:var(--ok-bg);':'')+'">'
+        +'<td style="text-align:center;"><input type="checkbox" '+checked+' style="width:16px;height:16px;cursor:pointer;" data-k="'+k+'" data-ik="'+iss.key+'" data-wid="'+w.id+'" onchange="toggleOtEntry(this.dataset.ik,this.dataset.wid)"></td>'
+        +'<td style="font-size:12px;color:var(--text2);">'+esc(iss.key)+'</td>'
+        +'<td>'+esc(w.author)+'</td>'
+        +'<td style="font-size:12px;color:var(--text2);">'+ds+'</td>'
+        +'<td><strong>'+w.hrs+'h</strong></td>'
+        +'<td style="font-size:13px;">'+esc(w.comment||'—')+'</td>'
+        +'</tr>';
+    }
+  }
+  h+='</tbody></table></div>';
+  if(totalSelected>0){
+    h+='<div style="display:flex;align-items:center;gap:12px;padding:10px 0;font-size:13px;">'
+      +'<span style="color:var(--text2);">Вибрано: <strong style="color:var(--ok);">'+totalSelected+' записів · '+totalHrs.toFixed(1)+' год overtime</strong></span></div>';
+  }
+  el.innerHTML=h;
+  renderOtSummary();
+}
+function renderOtSummary(){
+  var block=document.getElementById('ot-report-block');
+  var sel=document.getElementById('ot-selected-summary');
+  var selectedKeys=Object.keys(OT.selected);
+  if(!selectedKeys.length){block.style.display='none';return;}
+  block.style.display='block';
+  // group by author
+  var byAuthor={};
+  for(var i=0;i<OT.worklogs.length;i++){
+    var iss=OT.worklogs[i];
+    for(var j=0;j<iss.worklogs.length;j++){
+      var w=iss.worklogs[j];
+      var k=iss.key+'__'+w.id;
+      if(!OT.selected[k])continue;
+      if(!byAuthor[w.author])byAuthor[w.author]={hrs:0,entries:[]};
+      byAuthor[w.author].hrs+=w.hrs;
+      byAuthor[w.author].entries.push(w.comment||'—');
+    }
+  }
+  var h='<div class="tw"><table><thead><tr><th>Виконавець</th><th style="width:100px">Overtime год</th><th>Коментарі</th></tr></thead><tbody>';
+  var totalHrs=0;
+  Object.keys(byAuthor).sort().forEach(function(a){
+    var d=byAuthor[a];totalHrs+=d.hrs;
+    h+='<tr><td>'+esc(a)+'</td><td><strong>'+d.hrs.toFixed(1)+' h</strong></td><td style="font-size:12px;color:var(--text2);">'+esc(d.entries.join(' | '))+'</td></tr>';
+  });
+  h+='<tr style="font-weight:500;background:var(--bg2);"><td>Всього overtime</td><td>'+totalHrs.toFixed(1)+' h</td><td></td></tr>';
+  h+='</tbody></table></div>';
+  sel.innerHTML=h;
+}
+function copyOtReport(){
+  var selectedKeys=Object.keys(OT.selected);
+  if(!selectedKeys.length)return;
+  var byAuthor={};
+  for(var i=0;i<OT.worklogs.length;i++){
+    var iss=OT.worklogs[i];
+    for(var j=0;j<iss.worklogs.length;j++){
+      var w=iss.worklogs[j];
+      var k=iss.key+'__'+w.id;
+      if(!OT.selected[k])continue;
+      if(!byAuthor[w.author])byAuthor[w.author]={hrs:0,entries:[]};
+      byAuthor[w.author].hrs+=w.hrs;
+      byAuthor[w.author].entries.push(w.comment||'—');
+    }
+  }
+  var lines=['⏱ OVERTIME — '+(S.pname||'Проєкт')+' | Тиждень: '+otWeekLabel(),''];
+  var totalHrs=0;
+  Object.keys(byAuthor).sort().forEach(function(a){
+    var d=byAuthor[a];totalHrs+=d.hrs;
+    lines.push(a+': '+d.hrs.toFixed(1)+' год');
+    lines.push('  '+d.entries.join(' | '));
+    lines.push('');
+  });
+  lines.push('Всього overtime: '+totalHrs.toFixed(1)+' год');
+  navigator.clipboard.writeText(lines.join('\n')).then(function(){
+    var el=document.getElementById('ot-copy-ok');el.style.display='inline';
+    setTimeout(function(){el.style.display='none';},2500);
+  });
+}
+
 loadAll();
 </script>
 </body>
