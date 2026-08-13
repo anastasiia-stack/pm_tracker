@@ -804,16 +804,18 @@ function fetchOvertime(){
       st.innerHTML='<div style="color:var(--text2);font-size:13px;">Знайдено '+issues.length+' задач. Завантажую worklogs...</div>';
       // Step 2: fetch worklogs for each issue in parallel
       var bounds=otGetBounds();
+      var fromTs=bounds.from.getTime();
+      var toTs=bounds.to.getTime();
       var promises=issues.map(function(iss){
-        var fromTs=bounds.from.getTime();
-        var toTs=bounds.to.getTime();
         var wlUrl='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog?maxResults=100';
         var wu='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlUrl);
         return fetch(wu,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
-          .then(function(r){return r.json();})
+          .then(function(r){
+            if(!r.ok)throw new Error('WL error '+r.status+' for '+iss.key);
+            return r.json();
+          })
           .then(function(d){
             var allWl=d.worklogs||[];
-            // filter by timestamp - most reliable cross-browser method
             var worklogs=allWl.filter(function(w){
               var wts=new Date(w.started).getTime();
               return wts>=fromTs&&wts<=toTs;
@@ -842,12 +844,13 @@ function fetchOvertime(){
       OT.worklogs=results.filter(function(r){return r.worklogs.length>0;});
       OT.selected={};
       // DEBUG: show raw counts
-      var debugInfo=results.map(function(r){return r.key+': '+r.allCount+' worklogs total, '+r.worklogs.length+' in range';}).join('<br>');
+      var debugInfo=results.map(function(r){return r.key+': '+r.allCount+' worklogs total, '+r.worklogs.length+' in range (first: '+r.firstStarted+')';}).join('<br>');
+      var rangeInfo='Range: '+new Date(bounds.from).toISOString().substring(0,10)+' to '+new Date(bounds.to).toISOString().substring(0,10)+' ('+fromTs+' - '+toTs+')';
       var total=OT.worklogs.reduce(function(s,r){return s+r.worklogs.length;},0);
       renderOtList();
       var msg=total>0
         ?'✓ Завантажено overtime за '+otWeekLabel()+' — знайдено '+total+' записів'
-        :'✓ Завантажено overtime за '+otWeekLabel()+' — записів не знайдено за цей період<br><small style="color:var(--text2);">'+debugInfo+'</small>';
+        :'✓ Завантажено overtime за '+otWeekLabel()+' — записів не знайдено за цей період<br><small style="color:var(--text2);">'+rangeInfo+'<br>'+debugInfo+'</small>';
       st.innerHTML='<div style="background:'+(total>0?'var(--ok-bg)':'var(--warn-bg)')+';color:'+(total>0?'var(--ok)':'var(--warn)')+';border-radius:var(--r);padding:8px 12px;font-size:13px;margin-bottom:8px;">'+msg+'</div>';
       if(total>0)setTimeout(function(){st.innerHTML='';},5000);
     })
