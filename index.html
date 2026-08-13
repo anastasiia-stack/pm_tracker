@@ -808,7 +808,8 @@ function fetchOvertime(){
           .then(function(r){return r.json();})
           .then(function(d){
             var worklogs=(d.worklogs||[]).filter(function(w){
-              var s=new Date(w.started);
+              // parse started as local time to avoid timezone shift
+              var s=new Date(w.started.replace(/([+-]\d{2}:\d{2}|Z)$/,''));
               return s>=bounds.from&&s<=bounds.to;
             });
             return{
@@ -832,9 +833,13 @@ function fetchOvertime(){
     .then(function(results){
       OT.worklogs=results.filter(function(r){return r.worklogs.length>0;});
       OT.selected={};
+      var total=OT.worklogs.reduce(function(s,r){return s+r.worklogs.length;},0);
       renderOtList();
-      st.innerHTML='<div style="background:var(--ok-bg);color:var(--ok);border-radius:var(--r);padding:8px 12px;font-size:13px;margin-bottom:8px;">✓ Завантажено overtime за '+otWeekLabel()+'</div>';
-      setTimeout(function(){st.innerHTML='';},5000);
+      var msg=total>0
+        ?'✓ Завантажено overtime за '+otWeekLabel()+' — знайдено '+total+' записів'
+        :'✓ Завантажено overtime за '+otWeekLabel()+' — записів не знайдено за цей період';
+      st.innerHTML='<div style="background:'+(total>0?'var(--ok-bg)':'var(--warn-bg)')+';color:'+(total>0?'var(--ok)':'var(--warn)')+';border-radius:var(--r);padding:8px 12px;font-size:13px;margin-bottom:8px;">'+msg+'</div>';
+      if(total>0)setTimeout(function(){st.innerHTML='';},5000);
     })
     .catch(function(e){
       document.getElementById('ot-status').innerHTML='<div class="err-msg">'+e.message+'</div>';
@@ -850,7 +855,10 @@ function toggleOtEntry(issKey,wlId){
 }
 function renderOtList(){
   var el=document.getElementById('ot-list');
-  if(!OT.worklogs.length){el.innerHTML='';return;}
+  if(!OT.worklogs.length){
+    el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0;">Немає overtime записів за вибраний період. Спробуй змінити діапазон дат.</div>';
+    return;
+  }
   var totalSelected=0,totalHrs=0;
   var h='<div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Тиждень: <strong style="color:var(--text);">'+otWeekLabel()+'</strong> · Вибери записи що відносяться до цього проєкту</div>';
   h+='<div class="tw"><table><thead><tr>'
