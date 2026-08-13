@@ -805,25 +805,19 @@ function fetchOvertime(){
       // Step 2: fetch worklogs for each issue in parallel
       var bounds=otGetBounds();
       var promises=issues.map(function(iss){
-        var wlUrl='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog';
+        var wlUrl='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog?startedAfter='+bounds.from.getTime()+'&startedBefore='+bounds.to.getTime()+'&maxResults=100';
         var wu='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlUrl);
         return fetch(wu,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
           .then(function(r){return r.json();})
           .then(function(d){
-            var fromDate=otFmtDate(bounds.from);
-            var toDate=otFmtDate(bounds.to);
             var allWl=d.worklogs||[];
-            var worklogs=allWl.filter(function(w){
-              var startedDate=w.started.substring(0,10);
-              return startedDate>=fromDate&&startedDate<=toDate;
-            });
             return{
               key:iss.key,
               summary:iss.fields.summary||iss.key,
               assignee:(iss.fields.assignee&&iss.fields.assignee.displayName)||'—',
               allCount:allWl.length,
               firstStarted:allWl.length?allWl[0].started.substring(0,10):'—',
-              worklogs:worklogs.map(function(w){
+              worklogs:allWl.map(function(w){
                 return{
                   id:w.id,
                   author:(w.author&&w.author.displayName)||'—',
