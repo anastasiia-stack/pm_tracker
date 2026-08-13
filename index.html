@@ -767,8 +767,11 @@ function otGetBounds(){
   var toVal=document.getElementById('ot-to').value;
   var from,to;
   if(fromVal&&toVal){
-    from=new Date(fromVal+'T00:00:00');
-    to=new Date(toVal+'T23:59:59');
+    // parse manually to avoid Safari UTC interpretation
+    var fp=fromVal.split('-');
+    var tp=toVal.split('-');
+    from=new Date(parseInt(fp[0]),parseInt(fp[1])-1,parseInt(fp[2]),0,0,0);
+    to=new Date(parseInt(tp[0]),parseInt(tp[1])-1,parseInt(tp[2]),23,59,59);
     if(from>to){var tmp=from;from=to;to=tmp;}
   }else{
     var b=otWeekBounds(0);from=b.from;to=b.to;
