@@ -807,24 +807,26 @@ function fetchOvertime(){
         return fetch(wu,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
           .then(function(r){return r.json();})
           .then(function(d){
-            var worklogs=(d.worklogs||[]).filter(function(w){
-              // compare only date part YYYY-MM-DD to avoid timezone issues
+            var fromDate=otFmtDate(bounds.from);
+            var toDate=otFmtDate(bounds.to);
+            var allWl=d.worklogs||[];
+            var worklogs=allWl.filter(function(w){
               var startedDate=w.started.substring(0,10);
-              var fromDate=otFmtDate(bounds.from);
-              var toDate=otFmtDate(bounds.to);
               return startedDate>=fromDate&&startedDate<=toDate;
             });
             return{
               key:iss.key,
               summary:iss.fields.summary||iss.key,
               assignee:(iss.fields.assignee&&iss.fields.assignee.displayName)||'—',
+              allCount:allWl.length,
+              firstStarted:allWl.length?allWl[0].started.substring(0,10):'—',
               worklogs:worklogs.map(function(w){
                 return{
                   id:w.id,
                   author:(w.author&&w.author.displayName)||'—',
                   hrs:Math.round((w.timeSpentSeconds||0)/360)/10,
                   comment:w.comment&&w.comment.content?w.comment.content.map(function(b){return b.content?b.content.map(function(c){return c.text||'';}).join(''):'';}).join(' ').trim():'',
-                  started:w.started
+                  started:w.started.substring(0,10)
                 };
               })
             };
@@ -835,11 +837,13 @@ function fetchOvertime(){
     .then(function(results){
       OT.worklogs=results.filter(function(r){return r.worklogs.length>0;});
       OT.selected={};
+      // DEBUG: show raw counts
+      var debugInfo=results.map(function(r){return r.key+': '+r.allCount+' worklogs total, '+r.worklogs.length+' in range';}).join('<br>');
       var total=OT.worklogs.reduce(function(s,r){return s+r.worklogs.length;},0);
       renderOtList();
       var msg=total>0
         ?'✓ Завантажено overtime за '+otWeekLabel()+' — знайдено '+total+' записів'
-        :'✓ Завантажено overtime за '+otWeekLabel()+' — записів не знайдено за цей період';
+        :'✓ Завантажено overtime за '+otWeekLabel()+' — записів не знайдено за цей період<br><small style="color:var(--text2);">'+debugInfo+'</small>';
       st.innerHTML='<div style="background:'+(total>0?'var(--ok-bg)':'var(--warn-bg)')+';color:'+(total>0?'var(--ok)':'var(--warn)')+';border-radius:var(--r);padding:8px 12px;font-size:13px;margin-bottom:8px;">'+msg+'</div>';
       if(total>0)setTimeout(function(){st.innerHTML='';},5000);
     })
