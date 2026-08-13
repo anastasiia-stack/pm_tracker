@@ -808,9 +808,11 @@ function fetchOvertime(){
           .then(function(r){return r.json();})
           .then(function(d){
             var worklogs=(d.worklogs||[]).filter(function(w){
-              // parse started as local time to avoid timezone shift
-              var s=new Date(w.started.replace(/([+-]\d{2}:\d{2}|Z)$/,''));
-              return s>=bounds.from&&s<=bounds.to;
+              // compare only date part YYYY-MM-DD to avoid timezone issues
+              var startedDate=w.started.substring(0,10);
+              var fromDate=otFmtDate(bounds.from);
+              var toDate=otFmtDate(bounds.to);
+              return startedDate>=fromDate&&startedDate<=toDate;
             });
             return{
               key:iss.key,
