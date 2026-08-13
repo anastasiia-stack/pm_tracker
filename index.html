@@ -789,6 +789,9 @@ function fetchOvertime(){
     return;
   }
   var domain=JC.domain.replace(/^https?:\/\//,'').replace(/\/$/,'');
+  var bounds=otGetBounds();
+  var fromTs=bounds.from.getTime();
+  var toTs=bounds.to.getTime();
   var btn=event.target;btn.disabled=true;btn.textContent='Завантажую...';
   var st=document.getElementById('ot-status');
   st.innerHTML='<div style="color:var(--text2);font-size:13px;">Завантажую задачі OSP...</div>';
@@ -803,9 +806,6 @@ function fetchOvertime(){
       if(!issues.length)throw new Error('Задач не знайдено в проєкті OSP.');
       st.innerHTML='<div style="color:var(--text2);font-size:13px;">Знайдено '+issues.length+' задач. Завантажую worklogs...</div>';
       // Step 2: fetch worklogs for each issue in parallel
-      var bounds=otGetBounds();
-      var fromTs=bounds.from.getTime();
-      var toTs=bounds.to.getTime();
       var promises=issues.map(function(iss){
         var wlUrl='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog?maxResults=100';
         var wu='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlUrl);
