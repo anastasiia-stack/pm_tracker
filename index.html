@@ -748,8 +748,9 @@ function otWeekBounds(offset){
   var now=new Date();
   now.setDate(now.getDate()+offset*7);
   var day=now.getDay();
+  var diff=day===0?-6:1-day;
   var mon=new Date(now);
-  mon.setDate(now.getDate()-(day===0?6:day-1));
+  mon.setDate(now.getDate()+diff);
   mon.setHours(0,0,0,0);
   var sun=new Date(mon);
   sun.setDate(mon.getDate()+6);
@@ -764,12 +765,15 @@ function otSetWeek(offset){
 function otGetBounds(){
   var fromVal=document.getElementById('ot-from').value;
   var toVal=document.getElementById('ot-to').value;
+  var from,to;
   if(fromVal&&toVal){
-    var from=new Date(fromVal);from.setHours(0,0,0,0);
-    var to=new Date(toVal);to.setHours(23,59,59,999);
-    return{from:from,to:to};
+    from=new Date(fromVal+'T00:00:00');
+    to=new Date(toVal+'T23:59:59');
+    if(from>to){var tmp=from;from=to;to=tmp;}
+  }else{
+    var b=otWeekBounds(0);from=b.from;to=b.to;
   }
-  return otWeekBounds(0);
+  return{from:from,to:to};
 }
 function otWeekLabel(){
   var b=otGetBounds();
