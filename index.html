@@ -789,15 +789,18 @@ function otGetBounds(){
   var toVal=document.getElementById('ot-to').value;
   var from,to;
   if(fromVal&&toVal){
-    // parse manually to avoid Safari UTC interpretation
     var fp=fromVal.split('-');
     var tp=toVal.split('-');
-    from=new Date(parseInt(fp[0]),parseInt(fp[1])-1,parseInt(fp[2]),0,0,0);
-    to=new Date(parseInt(tp[0]),parseInt(tp[1])-1,parseInt(tp[2]),23,59,59);
+    // Use noon to avoid any DST/timezone boundary issues
+    from=new Date(parseInt(fp[0]),parseInt(fp[1])-1,parseInt(fp[2]),0,0,0,0);
+    to=new Date(parseInt(tp[0]),parseInt(tp[1])-1,parseInt(tp[2]),23,59,59,999);
     if(from>to){var tmp=from;from=to;to=tmp;}
   }else{
     var b=otWeekBounds(0);from=b.from;to=b.to;
   }
+  // Debug: store readable dates
+  OT._fromDate=otFmtDate(from);
+  OT._toDate=otFmtDate(to);
   return{from:from,to:to};
 }
 function otWeekLabel(){
@@ -831,27 +834,22 @@ function fetchOvertime(){
       st.innerHTML='<div style="color:var(--text2);font-size:13px;">Знайдено '+issues.length+' задач. Завантажую worklogs...</div>';
       // Step 2: fetch worklogs for each issue in parallel
       var promises=issues.map(function(iss){
-        var wlUrl='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog?maxResults=100&startAt=0';
+        // Fetch worklogs using startedAfter/Before as unix timestamps in URL path workaround
+        // First fetch to get total count
+        var wlUrl='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog?maxResults=1&startAt=0';
         var wu='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlUrl);
-        // First get total count, then fetch last page
         return fetch(wu,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
-          .then(function(r){
-            if(!r.ok)throw new Error('WL error '+r.status+' for '+iss.key);
-            return r.json();
-          })
+          .then(function(r){return r.json();})
           .then(function(d){
             var total=d.total||0;
-            var allWl=d.worklogs||[];
-            // If there are more worklogs than returned, fetch the last page
-            if(total>allWl.length){
-              var lastStart=Math.max(0,total-100);
-              var wlUrl2='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog?maxResults=100&startAt='+lastStart;
-              var wu2='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlUrl2);
-              return fetch(wu2,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
-                .then(function(r2){return r2.json();})
-                .then(function(d2){return processWorklogs(iss,d2.worklogs||[],total);});
-            }
-            return processWorklogs(iss,allWl,total);
+            if(total===0)return processWorklogs(iss,[],0);
+            // Fetch last 100 worklogs (most recent)
+            var lastStart=Math.max(0,total-100);
+            var wlUrl2='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog?maxResults=100&startAt='+lastStart;
+            var wu2='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlUrl2);
+            return fetch(wu2,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
+              .then(function(r2){return r2.json();})
+              .then(function(d2){return processWorklogs(iss,d2.worklogs||[],total);});
           });
       });
       return Promise.all(promises);
@@ -861,7 +859,7 @@ function fetchOvertime(){
       OT.selected={};
       // DEBUG: show raw counts
       var debugInfo=results.map(function(r){return r.key+': '+r.allCount+' worklogs total, '+r.worklogs.length+' in range (first: '+r.firstStarted+')';}).join('<br>');
-      var rangeInfo='Range: '+new Date(bounds.from).toISOString().substring(0,10)+' to '+new Date(bounds.to).toISOString().substring(0,10)+' ('+fromTs+' - '+toTs+')';
+      var rangeInfo='Range: '+OT._fromDate+' to '+OT._toDate+' ('+fromTs+' - '+toTs+')';
       var total=OT.worklogs.reduce(function(s,r){return s+r.worklogs.length;},0);
       renderOtList();
       var msg=total>0
