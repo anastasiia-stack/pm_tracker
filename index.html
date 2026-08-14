@@ -834,22 +834,20 @@ function fetchOvertime(){
       st.innerHTML='<div style="color:var(--text2);font-size:13px;">Знайдено '+issues.length+' задач. Завантажую worklogs...</div>';
       // Step 2: fetch worklogs for each issue in parallel
       var promises=issues.map(function(iss){
-        // Fetch worklogs using startedAfter/Before as unix timestamps in URL path workaround
-        // First fetch to get total count
-        var wlUrl='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog?maxResults=1&startAt=0';
-        var wu='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlUrl);
-        return fetch(wu,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
-          .then(function(r){return r.json();})
-          .then(function(d){
-            var total=d.total||0;
+        var wlBase='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog';
+        var wu0='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlBase+'?maxResults=1&startAt=0');
+        return fetch(wu0,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
+          .then(function(r0){return r0.json();})
+          .then(function(d0){
+            var total=d0.total||0;
             if(total===0)return processWorklogs(iss,[],0);
-            // Fetch last 100 worklogs (most recent)
             var lastStart=Math.max(0,total-100);
-            var wlUrl2='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog?maxResults=100&startAt='+lastStart;
-            var wu2='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlUrl2);
-            return fetch(wu2,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
-              .then(function(r2){return r2.json();})
-              .then(function(d2){return processWorklogs(iss,d2.worklogs||[],total);});
+            var wu1='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlBase+'?maxResults=100&startAt='+lastStart);
+            return fetch(wu1,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
+              .then(function(r1){return r1.json();})
+              .then(function(d1){
+                return processWorklogs(iss,d1.worklogs||[],total);
+              });
           });
       });
       return Promise.all(promises);
