@@ -749,7 +749,7 @@ function processWorklogs(iss,allWl,totalCount){
     summary:iss.fields.summary||iss.key,
     assignee:(iss.fields.assignee&&iss.fields.assignee.displayName)||'—',
     allCount:totalCount||allWl.length,
-    firstStarted:allWl.length?allWl[0].started.substring(0,10):'—',
+    firstStarted:allWl.length?allWl[allWl.length-1].started.substring(0,10)+'(last of '+allWl.length+')'  :'—',
     worklogs:worklogs.map(function(w){
       return{
         id:w.id,
