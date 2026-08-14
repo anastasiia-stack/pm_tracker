@@ -739,6 +739,28 @@ function renderAll(){
 }
 // OVERTIME
 var OT={worklogs:[],selected:{}};
+function processWorklogs(iss,allWl,totalCount){
+  var worklogs=allWl.filter(function(w){
+    var wts=new Date(w.started).getTime();
+    return wts>=OT._fromTs&&wts<=OT._toTs;
+  });
+  return{
+    key:iss.key,
+    summary:iss.fields.summary||iss.key,
+    assignee:(iss.fields.assignee&&iss.fields.assignee.displayName)||'—',
+    allCount:totalCount||allWl.length,
+    firstStarted:allWl.length?allWl[0].started.substring(0,10):'—',
+    worklogs:worklogs.map(function(w){
+      return{
+        id:w.id,
+        author:(w.author&&w.author.displayName)||'—',
+        hrs:Math.round((w.timeSpentSeconds||0)/360)/10,
+        comment:w.comment&&w.comment.content?w.comment.content.map(function(b){return b.content?b.content.map(function(c){return c.text||'';}).join(''):'';}).join(' ').trim():'',
+        started:w.started.substring(0,10)
+      };
+    })
+  };
+}
 function otFmtDate(d){
   var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
   return y+'-'+m+'-'+dd;
@@ -792,6 +814,8 @@ function fetchOvertime(){
   var bounds=otGetBounds();
   var fromTs=bounds.from.getTime();
   var toTs=bounds.to.getTime();
+  OT._fromTs=fromTs;
+  OT._toTs=toTs;
   var btn=event.target;btn.disabled=true;btn.textContent='Завантажую...';
   var st=document.getElementById('ot-status');
   st.innerHTML='<div style="color:var(--text2);font-size:13px;">Завантажую задачі OSP...</div>';
@@ -807,35 +831,27 @@ function fetchOvertime(){
       st.innerHTML='<div style="color:var(--text2);font-size:13px;">Знайдено '+issues.length+' задач. Завантажую worklogs...</div>';
       // Step 2: fetch worklogs for each issue in parallel
       var promises=issues.map(function(iss){
-        var wlUrl='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog?maxResults=100';
+        var wlUrl='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog?maxResults=100&startAt=0';
         var wu='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlUrl);
+        // First get total count, then fetch last page
         return fetch(wu,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
           .then(function(r){
             if(!r.ok)throw new Error('WL error '+r.status+' for '+iss.key);
             return r.json();
           })
           .then(function(d){
+            var total=d.total||0;
             var allWl=d.worklogs||[];
-            var worklogs=allWl.filter(function(w){
-              var wts=new Date(w.started).getTime();
-              return wts>=fromTs&&wts<=toTs;
-            });
-            return{
-              key:iss.key,
-              summary:iss.fields.summary||iss.key,
-              assignee:(iss.fields.assignee&&iss.fields.assignee.displayName)||'—',
-              allCount:allWl.length,
-              firstStarted:allWl.length?allWl[0].started.substring(0,10):'—',
-              worklogs:worklogs.map(function(w){
-                return{
-                  id:w.id,
-                  author:(w.author&&w.author.displayName)||'—',
-                  hrs:Math.round((w.timeSpentSeconds||0)/360)/10,
-                  comment:w.comment&&w.comment.content?w.comment.content.map(function(b){return b.content?b.content.map(function(c){return c.text||'';}).join(''):'';}).join(' ').trim():'',
-                  started:w.started.substring(0,10)
-                };
-              })
-            };
+            // If there are more worklogs than returned, fetch the last page
+            if(total>allWl.length){
+              var lastStart=Math.max(0,total-100);
+              var wlUrl2='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog?maxResults=100&startAt='+lastStart;
+              var wu2='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlUrl2);
+              return fetch(wu2,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
+                .then(function(r2){return r2.json();})
+                .then(function(d2){return processWorklogs(iss,d2.worklogs||[],total);});
+            }
+            return processWorklogs(iss,allWl,total);
           });
       });
       return Promise.all(promises);
