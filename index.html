@@ -824,7 +824,7 @@ function fetchOvertime(){
   st.innerHTML='<div style="color:var(--text2);font-size:13px;">Завантажую задачі OSP...</div>';
   var auth=btoa(JC.email+':'+JC.token);
   // Step 1: get all issues from OSP project
-  var jiraUrl='https://'+domain+'/rest/api/3/search/jql?jql=project=OSP ORDER BY key ASC&fields=summary,assignee&maxResults=100';
+  var jiraUrl='https://'+domain+'/rest/api/3/search/jql?jql=project=OSP AND summary~"OVERTIME" ORDER BY key ASC&fields=summary,assignee&maxResults=200';
   var url='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(jiraUrl);
   fetch(url,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
     .then(function(r){if(!r.ok)throw new Error('Jira помилка '+r.status);return r.json();})
