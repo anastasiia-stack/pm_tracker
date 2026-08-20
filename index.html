@@ -136,6 +136,7 @@ tr.oe>td{background:var(--err-bg);}tr.ar>td{background:var(--warn-bg);}tr.nt>td{
     <button class="tab" onclick="go('tasks')">Задачі</button>
     <button class="tab" onclick="go('report')">Звіт</button>
     <button class="tab" onclick="go('overtime')" style="color:var(--warn);">⏱ Overtime</button>
+    <button class="tab" onclick="go('operational')" style="color:var(--info);">⚙ Operational</button>
   </div>
   <div class="pane on" id="pane-setup">
     <div class="card">
@@ -230,6 +231,45 @@ tr.oe>td{background:var(--err-bg);}tr.ar>td{background:var(--warn-bg);}tr.nt>td{
     </div>
     <div style="margin-top:1rem;"><button class="btn btn-o" onclick="go('report')">← Назад до звіту</button></div>
   </div>
+  <div class="pane" id="pane-operational">
+    <div class="card">
+      <div class="ctitle">⚙ Operational — проєкт OS</div>
+      <p style="font-size:13px;color:var(--text2);margin-bottom:14px;">Підтягує worklogs по кожному співробітнику з проєкту OS за вибраний період.</p>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:14px;">
+        <div class="f" style="max-width:160px;min-width:130px;">
+          <label>Від</label>
+          <input type="date" id="op-from" style="height:36px;padding:0 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--bg2);color:var(--text);font-family:inherit;"/>
+        </div>
+        <div class="f" style="max-width:160px;min-width:130px;">
+          <label>До</label>
+          <input type="date" id="op-to" style="height:36px;padding:0 10px;border:0.5px solid var(--border2);border-radius:var(--r);font-size:14px;background:var(--bg2);color:var(--text);font-family:inherit;"/>
+        </div>
+        <div style="padding-top:20px;">
+          <button class="btn btn-o btn-sm" onclick="opSetWeek(-1)">← Минулий тиждень</button>
+        </div>
+        <div style="padding-top:20px;">
+          <button class="btn btn-o btn-sm" onclick="opSetWeek(0)">Поточний тиждень</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px;">
+        <button class="btn" style="background:var(--info-bg);color:var(--info);border-color:var(--info);" onclick="fetchOperational()">⚙ Підтягнути Operational з Jira</button>
+        <span style="font-size:12px;color:var(--text2);">використовує збережені дані Jira</span>
+      </div>
+      <div id="op-status"></div>
+      <div id="op-list"></div>
+    </div>
+    <div id="op-report-block" style="display:none;">
+      <div class="card">
+        <div class="ctitle">📋 Вибраний operational для звіту</div>
+        <div id="op-selected-summary"></div>
+        <div style="margin-top:12px;display:flex;gap:10px;">
+          <button class="btn btn-ok" onclick="copyOpReport()">⎘ Копіювати operational звіт</button>
+          <span class="copy-ok" id="op-copy-ok">Скопійовано!</span>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:1rem;"><button class="btn btn-o" onclick="go('report')">← Назад до звіту</button></div>
+  </div>
   <div class="pane" id="pane-report">
     <div class="export-bar">
       <button class="btn btn-export" onclick="exportExcel()">↓ Експорт в Excel</button>
@@ -274,13 +314,16 @@ function go(n){
   document.querySelectorAll('.pane').forEach(function(el){el.classList.remove('on');});
   document.querySelectorAll('.tab').forEach(function(el){el.classList.remove('on');});
   document.getElementById('pane-'+n).classList.add('on');
-  var tabs=['setup','tasks','report','overtime'];
+  var tabs=['setup','tasks','report','overtime','operational'];
   document.querySelectorAll('.tab')[tabs.indexOf(n)].classList.add('on');
   if(n==='report')report();
   if(n==='overtime'){
-    // init date pickers to current week if empty
     if(!document.getElementById('ot-from').value)otSetWeek(0);
     renderOtList();
+  }
+  if(n==='operational'){
+    if(!document.getElementById('op-from').value)opSetWeek(0);
+    renderOpList();
   }
 }
 function doReset(){
@@ -977,6 +1020,228 @@ function copyOtReport(){
   lines.push('Всього overtime: '+totalHrs.toFixed(1)+' год');
   navigator.clipboard.writeText(lines.join('\n')).then(function(){
     var el=document.getElementById('ot-copy-ok');el.style.display='inline';
+    setTimeout(function(){el.style.display='none';},2500);
+  });
+}
+
+// OPERATIONAL
+var OP={worklogs:[],selected:{}};
+function opFmtDate(d){
+  var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),dd=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+dd;
+}
+function opWeekBounds(offset){
+  offset=offset||0;
+  var now=new Date();
+  now.setDate(now.getDate()+offset*7);
+  var day=now.getDay();
+  var diff=day===0?-6:1-day;
+  var mon=new Date(now);
+  mon.setDate(now.getDate()+diff);
+  mon.setHours(0,0,0,0);
+  var sun=new Date(mon);
+  sun.setDate(mon.getDate()+6);
+  sun.setHours(23,59,59,999);
+  return{from:mon,to:sun};
+}
+function opSetWeek(offset){
+  var b=opWeekBounds(offset);
+  document.getElementById('op-from').value=opFmtDate(b.from);
+  document.getElementById('op-to').value=opFmtDate(b.to);
+}
+function opGetBounds(){
+  var fromVal=document.getElementById('op-from').value;
+  var toVal=document.getElementById('op-to').value;
+  var from,to;
+  if(fromVal&&toVal){
+    var fp=fromVal.split('-'),tp=toVal.split('-');
+    from=new Date(parseInt(fp[0]),parseInt(fp[1])-1,parseInt(fp[2]),0,0,0,0);
+    to=new Date(parseInt(tp[0]),parseInt(tp[1])-1,parseInt(tp[2]),23,59,59,999);
+    if(from>to){var tmp=from;from=to;to=tmp;}
+  }else{
+    var b=opWeekBounds(0);from=b.from;to=b.to;
+  }
+  OP._fromDate=opFmtDate(from);
+  OP._toDate=opFmtDate(to);
+  return{from:from,to:to};
+}
+function opWeekLabel(){
+  var b=opGetBounds();
+  var fmt=function(d){return d.getDate()+'.'+(d.getMonth()+1)+'.'+d.getFullYear();};
+  return fmt(b.from)+' — '+fmt(b.to);
+}
+function processOpWorklogs(iss,allWl,totalCount){
+  var worklogs=allWl.filter(function(w){
+    var wts=new Date(w.started).getTime();
+    return wts>=OP._fromTs&&wts<=OP._toTs;
+  });
+  return{
+    key:iss.key,
+    summary:iss.fields.summary||iss.key,
+    assignee:(iss.fields.assignee&&iss.fields.assignee.displayName)||'—',
+    allCount:totalCount||allWl.length,
+    worklogs:worklogs.map(function(w){
+      return{
+        id:w.id,
+        author:(w.author&&w.author.displayName)||'—',
+        hrs:Math.round((w.timeSpentSeconds||0)/360)/10,
+        comment:w.comment&&w.comment.content?w.comment.content.map(function(b){return b.content?b.content.map(function(c){return c.text||'';}).join(''):'';}).join(' ').trim():'',
+        started:w.started.substring(0,10)
+      };
+    })
+  };
+}
+function fetchOperational(){
+  if(!JC.domain||!JC.email||!JC.token){
+    document.getElementById('op-status').innerHTML='<div class="err-msg">Спочатку введи дані Jira на вкладці Задачі.</div>';
+    return;
+  }
+  var domain=JC.domain.replace(/^https?:\/\//,'').replace(/\/$/,'');
+  var bounds=opGetBounds();
+  OP._fromTs=bounds.from.getTime();
+  OP._toTs=bounds.to.getTime();
+  var btn=event.target;btn.disabled=true;btn.textContent='Завантажую...';
+  var st=document.getElementById('op-status');
+  st.innerHTML='<div style="color:var(--text2);font-size:13px;">Завантажую задачі OS...</div>';
+  var auth=btoa(JC.email+':'+JC.token);
+  var jiraUrl='https://'+domain+'/rest/api/3/search/jql?jql=project=OS ORDER BY key DESC&fields=summary,assignee&maxResults=100';
+  var url='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(jiraUrl);
+  fetch(url,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
+    .then(function(r){if(!r.ok)throw new Error('Jira помилка '+r.status);return r.json();})
+    .then(function(data){
+      var issues=data.issues||[];
+      if(!issues.length)throw new Error('Задач не знайдено в проєкті OS.');
+      st.innerHTML='<div style="color:var(--text2);font-size:13px;">Знайдено '+issues.length+' задач. Завантажую worklogs...</div>';
+      var promises=issues.map(function(iss){
+        var wlBase='https://'+domain+'/rest/api/3/issue/'+iss.key+'/worklog';
+        var wu0='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlBase+'?maxResults=1&startAt=0');
+        return fetch(wu0,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
+          .then(function(r0){return r0.json();})
+          .then(function(d0){
+            var total=d0.total||0;
+            if(total===0)return processOpWorklogs(iss,[],0);
+            var lastStart=Math.max(0,total-100);
+            var wu1='https://pmcheck.otkidach-anastasia23.workers.dev?url='+encodeURIComponent(wlBase+'?maxResults=100&startAt='+lastStart);
+            return fetch(wu1,{headers:{'Authorization':'Basic '+auth,'Accept':'application/json'}})
+              .then(function(r1){return r1.json();})
+              .then(function(d1){return processOpWorklogs(iss,d1.worklogs||[],total);});
+          });
+      });
+      return Promise.all(promises);
+    })
+    .then(function(results){
+      OP.worklogs=results.filter(function(r){return r.worklogs.length>0;});
+      OP.selected={};
+      var total=OP.worklogs.reduce(function(s,r){return s+r.worklogs.length;},0);
+      renderOpList();
+      var msg=total>0
+        ?'✓ Завантажено operational за '+opWeekLabel()+' — знайдено '+total+' записів'
+        :'✓ Завантажено operational за '+opWeekLabel()+' — записів не знайдено за цей період';
+      st.innerHTML='<div style="background:'+(total>0?'var(--ok-bg)':'var(--warn-bg)')+';color:'+(total>0?'var(--ok)':'var(--warn)')+';border-radius:var(--r);padding:8px 12px;font-size:13px;margin-bottom:8px;">'+msg+'</div>';
+      if(total>0)setTimeout(function(){st.innerHTML='';},5000);
+    })
+    .catch(function(e){document.getElementById('op-status').innerHTML='<div class="err-msg">'+e.message+'</div>';})
+    .finally(function(){btn.disabled=false;btn.textContent='⚙ Підтягнути Operational з Jira';});
+}
+function toggleOpEntry(issKey,wlId){
+  var k=issKey+'__'+wlId;
+  if(OP.selected[k])delete OP.selected[k];
+  else OP.selected[k]=true;
+  renderOpList();
+  renderOpSummary();
+}
+function renderOpList(){
+  var el=document.getElementById('op-list');
+  if(!OP.worklogs.length){el.innerHTML='<div style="color:var(--text2);font-size:13px;padding:8px 0;">Немає operational записів за вибраний період.</div>';return;}
+  var h='<div style="font-size:12px;color:var(--text2);margin-bottom:12px;">Тиждень: <strong style="color:var(--text);">'+opWeekLabel()+'</strong> · Вибери записи що відносяться до цього проєкту</div>';
+  h+='<div class="tw"><table><thead><tr>'
+    +'<th style="width:40px"></th>'
+    +'<th style="width:90px">Ключ</th>'
+    +'<th style="width:160px">Виконавець</th>'
+    +'<th style="width:80px">Дата</th>'
+    +'<th style="width:70px">Год</th>'
+    +'<th>Коментар</th>'
+    +'</tr></thead><tbody>';
+  var totalSelected=0,totalHrs=0;
+  for(var i=0;i<OP.worklogs.length;i++){
+    var iss=OP.worklogs[i];
+    for(var j=0;j<iss.worklogs.length;j++){
+      var w=iss.worklogs[j];
+      var k=iss.key+'__'+w.id;
+      var checked=OP.selected[k]?'checked':'';
+      if(OP.selected[k]){totalSelected++;totalHrs+=w.hrs;}
+      var d=new Date(w.started);
+      var ds=d.getDate()+'.'+(d.getMonth()+1);
+      h+='<tr style="'+(OP.selected[k]?'background:var(--info-bg);':'')+'">'
+        +'<td style="text-align:center;"><input type="checkbox" '+checked+' style="width:16px;height:16px;cursor:pointer;" data-ik="'+iss.key+'" data-wid="'+w.id+'" onchange="toggleOpEntry(this.dataset.ik,this.dataset.wid)"></td>'
+        +'<td style="font-size:12px;color:var(--text2);">'+esc(iss.key)+'</td>'
+        +'<td>'+esc(w.author)+'</td>'
+        +'<td style="font-size:12px;color:var(--text2);">'+ds+'</td>'
+        +'<td><strong>'+w.hrs+'h</strong></td>'
+        +'<td style="font-size:13px;">'+esc(w.comment||'—')+'</td>'
+        +'</tr>';
+    }
+  }
+  h+='</tbody></table></div>';
+  if(totalSelected>0){
+    h+='<div style="font-size:13px;padding:8px 0;color:var(--text2);">Вибрано: <strong style="color:var(--ok);">'+totalSelected+' записів · '+totalHrs.toFixed(1)+' год</strong></div>';
+  }
+  el.innerHTML=h;
+  renderOpSummary();
+}
+function renderOpSummary(){
+  var block=document.getElementById('op-report-block');
+  var sel=document.getElementById('op-selected-summary');
+  if(!Object.keys(OP.selected).length){block.style.display='none';return;}
+  block.style.display='block';
+  var byAuthor={};
+  for(var i=0;i<OP.worklogs.length;i++){
+    var iss=OP.worklogs[i];
+    for(var j=0;j<iss.worklogs.length;j++){
+      var w=iss.worklogs[j];
+      var k=iss.key+'__'+w.id;
+      if(!OP.selected[k])continue;
+      if(!byAuthor[w.author])byAuthor[w.author]={hrs:0,entries:[]};
+      byAuthor[w.author].hrs+=w.hrs;
+      byAuthor[w.author].entries.push(w.comment||'—');
+    }
+  }
+  var h='<div class="tw"><table><thead><tr><th>Виконавець</th><th style="width:120px">Год</th><th>Коментарі</th></tr></thead><tbody>';
+  var totalHrs=0;
+  Object.keys(byAuthor).sort().forEach(function(a){
+    var d=byAuthor[a];totalHrs+=d.hrs;
+    h+='<tr><td>'+esc(a)+'</td><td><strong>'+d.hrs.toFixed(1)+' h</strong></td><td style="font-size:12px;color:var(--text2);">'+esc(d.entries.join(' | '))+'</td></tr>';
+  });
+  h+='<tr style="font-weight:500;background:var(--bg2);"><td>Всього</td><td>'+totalHrs.toFixed(1)+' h</td><td></td></tr>';
+  h+='</tbody></table></div>';
+  sel.innerHTML=h;
+}
+function copyOpReport(){
+  var selectedKeys=Object.keys(OP.selected);
+  if(!selectedKeys.length)return;
+  var byAuthor={};
+  for(var i=0;i<OP.worklogs.length;i++){
+    var iss=OP.worklogs[i];
+    for(var j=0;j<iss.worklogs.length;j++){
+      var w=iss.worklogs[j];
+      var k=iss.key+'__'+w.id;
+      if(!OP.selected[k])continue;
+      if(!byAuthor[w.author])byAuthor[w.author]={hrs:0,entries:[]};
+      byAuthor[w.author].hrs+=w.hrs;
+      byAuthor[w.author].entries.push(w.comment||'—');
+    }
+  }
+  var lines=['⚙ OPERATIONAL — '+(S.pname||'Проєкт')+' | Тиждень: '+opWeekLabel(),''];
+  var totalHrs=0;
+  Object.keys(byAuthor).sort().forEach(function(a){
+    var d=byAuthor[a];totalHrs+=d.hrs;
+    lines.push(a+': '+d.hrs.toFixed(1)+' год');
+    lines.push('  '+d.entries.join(' | '));
+    lines.push('');
+  });
+  lines.push('Всього operational: '+totalHrs.toFixed(1)+' год');
+  navigator.clipboard.writeText(lines.join('\n')).then(function(){
+    var el=document.getElementById('op-copy-ok');el.style.display='inline';
     setTimeout(function(){el.style.display='none';},2500);
   });
 }
